@@ -1,0 +1,74 @@
+/* Set the font family and size for the entire page */
+body {
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+}
+
+/* Style the navigation bar */
+.navbar {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.navbar-brand {
+    font-weight: bold;
+}
+
+.nav-link {
+    font-weight: bold;
+}
+
+/* Style the container for the page content */
+.container {
+    margin-top: 20px;
+    margin-left: 0;
+}
+
+/* Style the form inputs */
+.form-group label {
+    font-weight: bold;
+}
+
+.form-control:focus {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Style the table */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+th, td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+    max-height: 50px; /* Set the max height to 50px */
+    overflow: hidden; /* Hide any overflow */
+    text-overflow: ellipsis; /* Add an ellipsis to indicate truncated text */
+    white-space: nowrap; /* Prevent line breaks */
+}
+
+th {
+    font-weight: bold;
+    background-color: #f8f9fa;
+}
+
+th:first-child {
+    max-width: 40px; /* Set the max width to 50px */
+}
+
+td.hole-score-below-par { /* Add a CSS selector to target only the hole score cells */
+    background-color: #c8e6c9; /* Set the background color to green */
+}
+
+/* Style the table rows */
+tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+tr:hover {
+    background-color: #e9ecef;
+}
