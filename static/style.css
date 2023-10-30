@@ -3,6 +3,9 @@ body {
     font-family: Arial, sans-serif;
     font-size: 16px;
 }
+.negative {
+    background-color: lightgreen;
+}
 
 /* Style the navigation bar */
 .navbar {
