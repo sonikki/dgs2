@@ -22,7 +22,7 @@
                         <select id="player" name="player" class="nav-link">
                             <option value="All Players">All Players</option>
                             {% for player_name in player_names %}
-                            <option value="{{ player_name }}" {% if player_name == selected_player %}selected{% endif %}>{{ player_name }}</option>
+                            <option value="{{ player_name[0] }}">{{ player_name[0] }}</option>
                             {% endfor %}
                         </select>
                     </li>
@@ -32,12 +32,9 @@
                     <li class="nav-item">
                         <select id="course" name="course" class="nav-link">
                             {% for course_name in course_names %}
-                            <option value="{{ course_name }}" {% if course_name == selected_course %}selected{% endif %}>{{ course_name }}</option>
+                            <option value="{{ course_name[0] }}">{{ course_name[0] }}</option>
                             {% endfor %}
                         </select>
-                    </li>
-                    <li class="nav-item">
-                        <label for="layout" class="nav-link">Select a layout:</label>
                     </li>
                     
                     <li class="nav-item">
@@ -48,28 +45,32 @@
         </nav>
     </form>
     <div class="container mt-3">
-        {% if top10_scores is not none %}
-        <h2>Top 10 scores for {{ selected_player }} on {{ selected_course }}:</h2>
+        {% if top10_scores %}
+        <h2>Top 10 scores:</h2>
         <table class="table">
             <thead>
                 <tr>
                     <th>Player Name</th>
-                    <th>Date & Time</th>
-                    <th>Layout</th>
+                    <th>Course Name</th>
+                    <th>Date</th>
                     <th>Score</th>
+                    <th>+/-</th>
                 </tr>
             </thead>
             <tbody>
-                {% for index, row in top10_scores.iterrows() %}
+                {% for scorecard in top10_scores %}
                 <tr>
-                    <td>{{ row['PlayerName'] }}</td>
-                    <td>{{ row['Päivämäärä'] }}</td>
-                    <td>{{ row['LayoutName'] }}</td>
-                    <td {% if row['tulos'] < 0 %}class="negative"{% endif %}>{{ row['tulos'] }}</td>
+                    <td>{{ scorecard['player_name'] }}</td>
+                    <td>{{ scorecard['course_name'] }}</td>
+                    <td>{{ scorecard['date'] }}</td>
+                    <td>{{ scorecard['kaikki'] }}</td>
+                    <td class="{{ 'negative' if scorecard['score'] < 0 else '' }}">{{ scorecard['score'] }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+        {% else %}  
+        <h2 class='error'>Error: {{ message }}</h2>
         {% endif %}
     </div>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>

@@ -16,7 +16,9 @@ body {
 .navbar-brand {
     font-weight: bold;
 }
-
+.error {
+    color: red;
+}   
 .nav-link {
     font-weight: bold;
 }
