@@ -3,8 +3,13 @@ body {
     font-family: Arial, sans-serif;
     font-size: 16px;
 }
+    
 .negative {
     background-color: lightgreen;
+}
+.birdie {
+    background-color: green;
+    color: black
 }
 
 /* Style the navigation bar */
@@ -17,7 +22,7 @@ body {
     font-weight: bold;
 }
 .error {
-    color: red;
+    color: rgb(141, 69, 69);
 }   
 .nav-link {
     font-weight: bold;
@@ -76,4 +81,74 @@ tr:nth-child(even) {
 
 tr:hover {
     background-color: #e9ecef;
+}
+
+tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+.hole-score {
+    display: inline-block;
+    margin-right: 10px;
+    background-color: #ddd;
+    padding: 2px 5px;
+    border-radius: 5px;
+}
+.hole-score.hole-in-one {
+    background-color: yellow;
+    color: black;
+}
+.hole-score.albatross {
+    background-color: lightgreen;
+    color: black;
+}
+.hole-score.eagle {
+    background-color: blue;
+    color: black;
+}
+.hole-score.birdie {
+    background-color: lightblue;
+    color: black;
+}
+.hole-score.par {
+    background-color: #ddd;
+    color: black;
+}
+.hole-score.bogey {
+    background-color: lightsalmon;
+    color: black;
+}
+.hole-score.double-bogey {
+    background-color: red;
+    color: black;
+}
+.hole-score.triple-bogey {
+    background-color: darkred;
+    color: black;
+}
+.hole-score.quatro-bogey {
+    background-color: black;
+    color: white;
+}
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.results-table th, .results-table td {
+    border: 1px solid #000000;
+    padding: 8px;
+}
+.results-table th {
+    background-color: #f2f2f2;
+    text-align: left;
+}
+.hole-score {
+    margin-right: 10px;
+    padding: 5px;
+    border-radius: 5px;
+    background-color: #f2f2f2;
+}
+table tr td:last-child {
+    width: 1%;  /* Adjust as needed */
+    white-space: nowrap;
 }

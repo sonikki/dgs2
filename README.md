@@ -1,17 +1,29 @@
-# Disc Golf Statistics
+# Disc Golf Statistics - Score tracker
 
-This is a Flask application that allows users to view disc golf scorecards from a SQLite database. The data is loaded from a CSV file named 'UDisc Scorecards.csv'.
+This is a web application for tracking disc golf scores. It allows users to upload Udisc exportable CSV files with score data, which is then stored in a database and can be queried through various endpoints.
 
-## Features
+## Getting Started
 
-- View scorecards for different players and courses.
-- Filter scorecards by player and course.
-- View the top 10 scores for a selected player and course.
+These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
 
-## Installation
+### Prerequisites
 
-1. Clone this repository.
-2. Install the required Python packages using pip:
+- Python 3.6 or later
+- Flask
+- SQLAlchemy
+- pandas
+
+You can install these packages using pip:
 
 ```bash
-pip install flask flask_sqlalchemy pandas
+pip install flask sqlalchemy pandas
+
+
+## Usage
+
+The application provides the following endpoints:
+
+- `/upload`: This endpoint allows you to upload a CSV file with score data. The data is then loaded into the database.
+
+- `/check_data`: This endpoint returns the number of players and courses in the database.
+

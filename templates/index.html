@@ -1,80 +1,55 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Disc Golf Statistics</title>
-    <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scorecard Selection</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="favicon" href="{{ url_for('static', filename='favicon.ico') }}">
+  
 </head>
 <body>
-    <form action="/" method="POST">
-        <nav class="navbar navbar-expand-lg navbar-light bg-light">
-            <a class="navbar-brand" href="#">Disc Golf Statistics</a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <label for="player" class="nav-link">Select a player:</label>
-                    </li>
-                    <li class="nav-item">
-                        <select id="player" name="player" class="nav-link">
-                            <option value="All Players">All Players</option>
-                            {% for player_name in player_names %}
-                            <option value="{{ player_name[0] }}">{{ player_name[0] }}</option>
-                            {% endfor %}
-                        </select>
-                    </li>
-                    <li class="nav-item">
-                        <label for="course" class="nav-link">Select a course:</label>
-                    </li>
-                    <li class="nav-item">
-                        <select id="course" name="course" class="nav-link">
-                            {% for course_name in course_names %}
-                            <option value="{{ course_name[0] }}">{{ course_name[0] }}</option>
-                            {% endfor %}
-                        </select>
-                    </li>
-                    
-                    <li class="nav-item">
-                        <button type="submit" class="btn btn-primary nav-link">Submit</button>
-                    </li>
-                </ul>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-4 col-lg-3 bg-light">
+                <form action="/" method="get" id="scorecard-form">
+                    <label for="player_name">Player Name:</label><br>
+                    <select id="player_name" name="player_name" required>
+                        <option value="" disabled selected>Select a Player</option>
+                        {% for player in players %}
+                            <option value="{{ player }}">{{ player }}</option>
+                        {% endfor %}
+                    </select><br>
+
+                    <label for="course_name">Course Name:</label><br>
+                    <select id="course_name" name="course_name" required>
+                        <option value="" disabled selected>Select a Course</option>
+                    </select><br>
+
+                    <label for="layout_name">Layout Name:</label><br>
+                    <select id="layout_name" name="layout_name" required>
+                        <option value="" disabled selected>Select a Layout</option>
+                    </select><br>
+                    <br>
+                    <label for="num-results">Number of Results:</label>
+                    <select id="num-results">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="all">All</option>
+                    </select>
+                    <br>
+                    <input type="submit" value="Submit">
+                </form>
+                <div id="loading-indicator" style="display: none;">Loading...</div>
             </div>
-        </nav>
-    </form>
-    <div class="container mt-3">
-        {% if top10_scores %}
-        <h2>Top 10 scores:</h2>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Player Name</th>
-                    <th>Course Name</th>
-                    <th>Date</th>
-                    <th>Score</th>
-                    <th>+/-</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for scorecard in top10_scores %}
-                <tr>
-                    <td>{{ scorecard['player_name'] }}</td>
-                    <td>{{ scorecard['course_name'] }}</td>
-                    <td>{{ scorecard['date'] }}</td>
-                    <td>{{ scorecard['kaikki'] }}</td>
-                    <td class="{{ 'negative' if scorecard['score'] < 0 else '' }}">{{ scorecard['score'] }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        {% else %}  
-        <h2 class='error'>Error: {{ message }}</h2>
-        {% endif %}
+            <!-- Main content -->
+            <div class="col-md-8 col-lg-9">
+                <div id="results"></div>
+            </div>
+        </div>
     </div>
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="{{ url_for('static', filename='main.js') }}"></script>
 </body>
 </html>
