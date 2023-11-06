@@ -8,6 +8,10 @@ import pandas as pd
 from sqlalchemy import func
 from flask import jsonify
 
+def is_valid_login(username, password):
+    #For now, just return True to allow access but can be customized in future 
+    return True
+
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///dgs.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -318,7 +322,7 @@ def scorecard_data(player_name, course_name, layout_name):
     } for scorecard in scorecards])
           
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/index', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
         player_name = request.form.get('player_name')
@@ -354,6 +358,21 @@ def index():
 #     return render_template('upload.html')
 
 # Modify the main block
+@app.route('/', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        # Check the username and password entered by the user
+        # You can add your authentication logic here
+        if is_valid_login(request.form['username'], request.form['password']):
+            # If the login is valid, redirect the user to the main page
+            return redirect('/index')  # Redirect to the main page
+        else:
+            # If the login is not valid, show an error message or redirect to the login page again
+            return render_template('login.html', error_message='Invalid login credentials')
+
+    return render_template('login.html')
+
+
 
 
 if __name__ == '__main__':
