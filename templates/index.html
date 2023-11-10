@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,19 +8,20 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="favicon" href="{{ url_for('static', filename='favicon.ico') }}">
-  
+    <script src="{{ url_for('static', filename='main.js') }}"></script>
 </head>
+
 <body>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <div class="col-md-4 col-lg-3 bg-light">
-                <form action="/" method="get" id="scorecard-form">
+                <form action="/index" method="get" id="scorecard-form">
                     <label for="player_name">Player Name:</label><br>
                     <select id="player_name" name="player_name" required>
                         <option value="" disabled selected>Select a Player</option>
                         {% for player in players %}
-                            <option value="{{ player }}">{{ player }}</option>
+                        <option value="{{ player }}">{{ player }}</option>
                         {% endfor %}
                     </select><br>
 
@@ -50,6 +52,6 @@
             </div>
         </div>
     </div>
-    <script src="{{ url_for('static', filename='main.js') }}"></script>
 </body>
+
 </html>

@@ -1,0 +1,36 @@
+.submit {
+    color: white;
+    background-color: darkblue;
+    width: 400px;
+}
+
+#username {
+    width: 400px;
+}
+
+#password {
+    width: 400px;
+}
+
+
+#confirm-password {
+    width: 400px;
+}
+
+h1 {
+    padding-bottom: 50px;
+    padding-top: 10px;
+}
+
+#email {
+    width: 400px;
+}
+
+.img-fluid {
+    width: 100%;
+    height: 100vh;
+}
+
+.container-fluid {
+    padding-left: 80px;
+}
