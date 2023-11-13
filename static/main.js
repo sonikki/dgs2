@@ -1,10 +1,22 @@
+window.onload = function () {
+    const courseNameElement = document.getElementById("course_name");
+    const layoutNameElement = document.getElementById("layout_name");
+    const playerNameElement = document.getElementById("player_name");
+    const loadingIndicatorElement = document.getElementById('loading-indicator');
+    const scorecardFormElement = document.getElementById('scorecard-form');
+    const resultsElement = document.getElementById('results');
+    const numResultsElement = document.getElementById('num-results');
 
+    if (!courseNameElement || !layoutNameElement || !playerNameElement || !loadingIndicatorElement || !scorecardFormElement || !resultsElement || !numResultsElement) {
+        console.error("One or more elements not found");
+        return;
+    }
 
-document.getElementById('course_name').addEventListener('change', function () {
-    let courseId = this.value;
-    if (courseId) {
-        document.getElementById('loading-indicator').style.display = 'block';
-        fetch('/layouts_for_course/' + courseId)
+    const updatedEvent = new Event('updated');
+
+    function fetchData(endpoint, selectElement, defaultOptionText) {
+        loadingIndicatorElement.style.display = 'block';
+        return fetch(endpoint)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
@@ -12,155 +24,211 @@ document.getElementById('course_name').addEventListener('change', function () {
                 return response.json();
             })
             .then(data => {
-                let layoutSelect = document.getElementById('layout_name');
-                layoutSelect.innerHTML = '<option value="" disabled selected>Select a Layout</option>';
-                for (let layout of data) {
-                    let option = document.createElement('option');
-                    option.text = layout;
-                    layoutSelect.add(option);
+                console.log(data);
+                if (data?.length > 0) {
+                    selectElement.innerHTML = `<option value="" disabled selected>${defaultOptionText}</option>`;
+                    for (let item of data) {
+                        let option = document.createElement('option');
+                        option.text = typeof item === 'string' ? item : item.name;
+                        selectElement.appendChild(option);
+                    }
+                    loadingIndicatorElement.style.display = 'none';
+                    if (selectElement.options.length > 1) {
+                        selectElement.selectedIndex = 1;
+                        selectElement.dispatchEvent(updatedEvent);
+                    }
                 }
-                if (data.length > 0) {
-                    layoutSelect.selectedIndex = 1;
-                }
-                document.getElementById('loading-indicator').style.display = 'none';
             })
             .catch(error => {
                 console.error('There has been a problem with your fetch operation:', error);
             });
     }
-});
 
-document.getElementById('player_name').addEventListener('change', function () {
-    let playerId = this.value;
-    if (playerId) {
+    // Fetch the courses data when the page loads
+    fetchData('/courses_for_all_players', courseNameElement, 'Select a Course');
+
+    courseNameElement.addEventListener('updated', () => {
+        // Fetch the layouts data when a course is selected
+        let selectedCourseName = courseNameElement.options[courseNameElement.selectedIndex].text;
+        let fetchUrl = `/layouts_for_course/${encodeURIComponent(selectedCourseName)}`;
+        fetchData(fetchUrl, layoutNameElement, 'Select a Layout');
+    });
+
+    layoutNameElement.addEventListener('updated', () => {
+        // Fetch the players data when a layout is selected
+        let selectedCourseName = courseNameElement.options[courseNameElement.selectedIndex].text;
+        let selectedLayoutName = layoutNameElement.options[layoutNameElement.selectedIndex].text;
+        let fetchUrl = `/players_for_course_and_layout/${encodeURIComponent(selectedCourseName)}/${encodeURIComponent(selectedLayoutName)}`;
+        fetchData(fetchUrl, playerNameElement, 'Select a Player');
+    });
+
+    scorecardFormElement.addEventListener('submit', (event) => {
+        event.preventDefault();
+
+        let selectedCourseName = courseNameElement.options[courseNameElement.selectedIndex].text;
+        let selectedLayoutName = layoutNameElement.options[layoutNameElement.selectedIndex].text;
+        let selectedPlayerName = playerNameElement.options[playerNameElement.selectedIndex].text;
+        let numResults = numResultsElement.value;
+        let fetchUrl = `/scorecard_data/${encodeURIComponent(selectedPlayerName)}/${encodeURIComponent(selectedCourseName)}/${encodeURIComponent(selectedLayoutName)}/${encodeURIComponent(numResults)}`;
+
         document.getElementById('loading-indicator').style.display = 'block';
-        fetch('/courses_for_player/' + playerId)
+        console.log('Fetching scorecard data...');
+        fetch(fetchUrl)
             .then(response => {
+                console.log('Fetch response:', response);
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }
                 return response.json();
             })
             .then(data => {
-                let courseSelect = document.getElementById('course_name');
-                courseSelect.innerHTML = '<option value="" disabled selected>Select a Course</option>';
-                for (let course of data) {
-                    let option = document.createElement('option');
-                    option.text = course;
-                    courseSelect.add(option);
-                }
-                if (data.length > 0) {
-                    courseSelect.selectedIndex = 1;
-                }
-                document.getElementById('layout_name').innerHTML = '<option value="" disabled selected>Select a Layout</option>';
-                document.getElementById('loading-indicator').style.display = 'none';
-            })
-            .catch(error => {
-                console.error('There has been a problem with your fetch operation:', error);
-            });
-    }
-});
-document.getElementById('scorecard-form').addEventListener('submit', function (event) {
-    event.preventDefault();
+                console.log('Processing data:', data);
 
-    let playerName = document.getElementById('player_name').value;
-    let courseName = document.getElementById('course_name').value;
-    let layoutName = document.getElementById('layout_name').value;
-
-    document.getElementById('loading-indicator').style.display = 'block';
-
-    fetch('/scorecard_data/' + playerName + '/' + courseName + '/' + layoutName)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            let numResults = document.getElementById('num-results').value;
-
-            // If the user selected "All", set numResults to the length of the data array
                 if (numResults === 'all') {
                     numResults = data.length;
                 }
-
-            // Limit the data to the first numResults scorecards
-            data = data.slice(0, numResults);
+                data.sort((a, b) => a.total_score - b.total_score);
+                data = data.slice(0, numResults);
                 let resultsDiv = document.getElementById('results');
-                resultsDiv.innerHTML = ''; // Clear the previous results
+                resultsDiv.innerHTML = '';
 
-            // Create a table
-            let table = document.createElement('table');
-            table.classList.add('results-table');
+                let table = document.createElement('table');
+                table.id = 'scorecard-table';
 
-            // Create the table headers
-            let thead = document.createElement('thead');
-            thead.innerHTML = `
-                <tr>
-                    <th>Player</th>
-                    <th>Course</th>
-                    <th>Layout</th>
-                    <th>Total Score</th>
-                    <th>+/-</th>
-                </tr>
-            `;
-            table.appendChild(thead);
+                let thead = document.createElement('thead');
+                let headerRow = document.createElement('tr');
+                ['Player Name', 'Course Name', 'Layout', 'Total Score', '+/-', 'Date'].forEach(headerText => {
+                    let th = document.createElement('th');
+                    th.textContent = headerText;
+                    headerRow.appendChild(th);
+                });
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
 
-            // Create a table body
-            let tbody = document.createElement('tbody');
-            table.appendChild(tbody);
-            
-            // Add the scorecards to the table
-            // sort by score difference
-            data.sort(function(a, b) {
-                return a.score_difference - b.score_difference;
+                let tbody = document.createElement('tbody');
+                table.appendChild(tbody);
+
+                data.sort((a, b) => a.score_difference - b.score_difference);
+                data.forEach(scorecard => {
+                    let tr = document.createElement('tr');
+                    let dateCell = document.createElement('td');
+                    dateCell.textContent = scorecard.date;
+                    tr.appendChild(dateCell);
+
+                    tr.addEventListener('click', function () {
+                        let holeScoresTr = tr.nextElementSibling;
+                        if (holeScoresTr && holeScoresTr.classList.contains('hole-score')) {
+                            holeScoresTr.remove();
+                        } else {
+                            console.log('Scorecard object:', scorecard);
+
+                            fetch('/hole_scores/' + scorecard.id)  // Use the scorecard_id directly
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error('Network response was not ok');
+                                    }
+                                    return response.json();
+                                })
+                                .then(holeScores => {
+                                    console.log(holeScores);
+
+                                    holeScoresTr = document.createElement('tr');
+                                    holeScoresTr.classList.add('hole-score');
+                                    holeScores.sort((a, b) => a.hole_number - b.hole_number);
+
+                                    holeScores.forEach(holeScore => {
+                                        let td = document.createElement('td');
+                                        td.textContent = holeScore.strokes;
+                                        let className = getScoreClass(holeScore.strokes, holeScore.par);  // Moved inside the forEach block
+                                        td.className = 'hole-score ' + className;
+                                        console.log(className);
+                                        td.className = className;
+                                        holeScoresTr.appendChild(td);
+                                    });
+
+                                    tr.parentNode.insertBefore(holeScoresTr, tr.nextSibling);
+                                })
+                                .catch(error => {
+                                    console.error('There has been a problem with your fetch operation:', error);
+                                });
+                        }
+                    });
+                    
+
+                    let postToTelegramButton = document.createElement('button');
+                    postToTelegramButton.textContent = 'Post to Telegram';
+                    postToTelegramButton.addEventListener('click', function () {
+                        event.stopPropagation();
+                        console.log('Scorecard object:', scorecard);
+
+                        fetch('/postToTelegram', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                chat_id: '-4032226032',
+                                text: `Scorecard:\nPlayer Name: ${scorecard.player_name}\nCourse Name: ${scorecard.course_name}\nLayout Name: ${scorecard.layout}\nTotal Score: ${scorecard.total_score}\nScore Difference: ${scorecard.score_difference}`,
+                                disable_web_page_preview: true,
+                                disable_notification: true
+                            })
+                        })
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error('Network response was not ok');
+                                }
+                                return response.json();
+                            })
+                            .then(data => {
+                                console.log('Message sent to Telegram:', data);
+                            })
+                            .catch(error => {
+                                console.error('There has been a problem with your fetch operation:', error);
+                            });
+                    });
+
+                    let scoreDifferenceCell = document.createElement('td');
+                    scoreDifferenceCell.textContent = scorecard.score_difference;
+
+                    if (scorecard.score_difference < 0) {
+                        scoreDifferenceCell.classList.add('negative');
+                    }
+
+                    let playerNameCell = document.createElement('td');
+                    playerNameCell.textContent = scorecard.player_name;
+
+                    let courseNameCell = document.createElement('td');
+                    courseNameCell.textContent = scorecard.course_name;
+
+                    let layoutNameCell = document.createElement('td');
+                    layoutNameCell.textContent = scorecard.layout_name;
+
+                    let totalScoreCell = document.createElement('td');
+                    totalScoreCell.textContent = scorecard.total_score;
+
+                    tr.appendChild(playerNameCell);
+                    tr.appendChild(courseNameCell);
+                    tr.appendChild(layoutNameCell);
+                    tr.appendChild(totalScoreCell);
+                    tr.appendChild(scoreDifferenceCell);
+                    tr.appendChild(dateCell);
+                    tr.appendChild(postToTelegramButton);
+
+                    tbody.appendChild(tr);
+                });
+
+                resultsDiv.appendChild(table);
+
+                document.getElementById('loading-indicator').style.display = 'none';
+            })
+            .catch(error => {
+                console.error('There has been a problem with your fetch operation:', error);
             });
-            data.forEach(scorecard => {
-                // Create a row for the scorecard
-                let tr = document.createElement('tr');
 
-                // Create the score_difference cell
-                let scoreDifferenceCell = document.createElement('td');
-                scoreDifferenceCell.textContent = scorecard.score_difference;
+    });
+}
 
-                // If the score_difference is negative, add the 'negative' class to the cell
-                if (scorecard.score_difference < 0) {
-                    scoreDifferenceCell.classList.add('negative');
-                }
 
-                // Create other cells
-                let playerNameCell = document.createElement('td');
-                playerNameCell.textContent = scorecard.player_name;
-
-                let courseNameCell = document.createElement('td');
-                courseNameCell.textContent = scorecard.course_name;
-
-                let layoutNameCell = document.createElement('td');
-                layoutNameCell.textContent = scorecard.layout_name;
-
-                let totalScoreCell = document.createElement('td');
-                totalScoreCell.textContent = scorecard.total_score;
-
-                // Append the cells to the row
-                tr.appendChild(playerNameCell);
-                tr.appendChild(courseNameCell);
-                tr.appendChild(layoutNameCell);
-                tr.appendChild(totalScoreCell);
-                tr.appendChild(scoreDifferenceCell);
-
-                // Append the row to the table body
-                tbody.appendChild(tr);
-            });
-
-            // Append the table to the results div
-            resultsDiv.appendChild(table);
-
-            document.getElementById('loading-indicator').style.display = 'none';
-        })
-        .catch(error => {
-            console.error('There has been a problem with your fetch operation:', error);
-        });
-});
 function getScoreClass(score, par) {
     if (score === 1) {
         return 'hole-in-one';

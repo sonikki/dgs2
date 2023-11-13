@@ -27,33 +27,25 @@ class MetaData(db.Model):
         db.DateTime, nullable=False, server_default=func.now()
     )
 
-
 def get_last_processed_timestamp():
-    # Fetch the MetaData row from the database. Since there's only one row, we can use first()
     meta_data = MetaData.query.first()
-
-    # If the MetaData row exists, return the last_processed_timestamp
     if meta_data:
         return meta_data.last_processed_timestamp
-
-    # If the MetaData row does not exist, create it with the current timestamp
     else:
-        meta_data = MetaData()
-        db.session.add(meta_data)
-        db.session.commit()
-        return meta_data.last_processed_timestamp
+        return None
 
 
-def update_last_processed_timestamp(timestamp_str):
-    # Convert the timestamp string to a datetime object
-    timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H%M")
+def update_last_processed_timestamp(timestamp):
+    # Convert the timestamp to a string
+    timestamp_str = timestamp.strftime("%Y-%m-%d %H%M")
 
     # Fetch the MetaData row from the database
     meta_data = MetaData.query.first()
 
     # Update the last_processed_timestamp field and commit the changes
-    meta_data.last_processed_timestamp = timestamp
+    meta_data.last_processed_timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H%M")
     db.session.commit()
+
 
 
 # Define database models
@@ -109,6 +101,7 @@ class Round(BaseModel):
     course_id = db.Column(db.Integer, db.ForeignKey("course.id"))
     layout_id = db.Column(db.Integer, db.ForeignKey("course_layout.id"))
     date = db.Column(db.Date)
+    score_difference = db.Column(db.Integer)
 
 
 # Scorecard represents a player's scorecard for a round. It is associated with a Player and a Round. It has various attributes, such as the total score and the total number of throws.
@@ -118,7 +111,7 @@ class Scorecard(BaseModel):
     round_id = db.Column(db.Integer, db.ForeignKey("round.id"))
     total_score = db.Column(db.Integer)
     score_difference = db.Column(db.Integer)
-    total_throws = db.Column(db.Integer)
+   
 
 
 # HoleScore represents a player's score for a specific hole. It is associated with a Scorecard. It has the hole number and the number of strokes.
@@ -142,82 +135,125 @@ class HoleScore(BaseModel):
 
 def load_data(filename):
     try:
+        # Initialize counters
+        player_counter = 0
+        course_counter = 0
+        layout_counter = 0
+        round_counter = 0
+        scorecard_counter = 0
+        hole_score_counter = 0
+
+        meta_data = MetaData.query.first()
+        if meta_data is None:
+            meta_data = MetaData(last_processed_timestamp=datetime.min)
+            db.session.add(meta_data)
+
         df = pd.read_csv(filename)
-        df["Kaikki"] = df["Kaikki"].fillna(0)
+        df['Kaikki'] = df['Kaikki'].fillna(0)
+        df['Päivämäärä'] = pd.to_datetime(df['Päivämäärä'], format='%Y-%m-%d %H%M')
+        df = df.sort_values('Päivämäärä')
+
         last_processed_timestamp = get_last_processed_timestamp()
-        for index, row in df.iterrows():
-            row_timestamp = datetime.strptime(row["Päivämäärä"], "%Y-%m-%d %H%M")
-            if row_timestamp > last_processed_timestamp:
+        if last_processed_timestamp is None:
+            last_processed_timestamp = datetime.min
+
+        for _, row in df.iterrows():
+            row_timestamp = row['Päivämäärä'].to_pydatetime()
+            if row_timestamp >= meta_data.last_processed_timestamp:
                 process_row(row)
+
+                # Increment counters
+                player_counter += 1
+                course_counter += 1
+                layout_counter += 1
+                round_counter += 1
+                scorecard_counter += 1
+                hole_score_counter += len([col for col in df.columns if 'Hole' in col and pd.notna(row[col])])
+
+                meta_data.last_processed_timestamp = row_timestamp
+                db.session.commit()
+
         db.session.commit()
-        print("Committed changes to the database")
-        update_last_processed_timestamp(
-            df["Päivämäärä"].max()
-        )  # Update the last processed timestamp
+        update_last_processed_timestamp(df['Päivämäärä'].max())
+
+        # Print counters
+        print(f"Inserted {player_counter} rows into Player table")
+        print(f"Inserted {course_counter} rows into Course table")
+        print(f"Inserted {layout_counter} rows into CourseLayout table")
+        print(f"Inserted {round_counter} rows into Round table")
+        print(f"Inserted {scorecard_counter} rows into Scorecard table")
+        print(f"Inserted {hole_score_counter} rows into HoleScore table")
+
     except Exception as e:
         print("Error loading data:", str(e))
         db.session.rollback()
-        player_count = db.session.query(func.count(Player.id)).scalar()
-        print(f"Loaded {player_count} players")
+
+
+
+
 
 
 def process_row(row):
-    # Create or retrieve the player
-    player_name = row["PlayerName"].strip()
-    player, created = Player.get_or_create(name=player_name)
+    try:
+        # Extract player information
+        player_name = row['PlayerName'].strip()
+        player = Player.get_or_create(name=player_name)[0]
 
-    # Create or retrieve the course
-    course_name = row["CourseName"]
-    course, created = Course.get_or_create(name=course_name)
+        # Extract course information
+        course_name = row['CourseName']
+        course = Course.get_or_create(name=course_name)[0]
 
-    # Create or retrieve the layout
-    layout_name = row["LayoutName"]
-    layout, created = CourseLayout.get_or_create(
-        course_id=course.id, layout_name=layout_name
-    )
-    if created:
-        hole_count = sum(pd.notna(row[f"Hole{i}"]) for i in range(1, 25))
-        layout.hole_count = hole_count
-        db.session.add(layout)
+        # Extract layout information
+        layout_name = row['LayoutName']
+        layout = CourseLayout.get_or_create(course_id=course.id, layout_name=layout_name)[0]
 
-        if player_name == "Par":
-            par_values = [
-                int(row[f"Hole{i}"]) if pd.notna(row[f"Hole{i}"]) else 0
-                for i in range(1, 25)
-            ]
-            layout.par_values = ",".join(map(str, par_values))
+        # Convert Timestamp to a string for date parsing
+        date_object = row['Päivämäärä'].date()
 
-    # Create the round
-    date_string = row["Päivämäärä"]
-    date_object = datetime.strptime(
-        date_string, "%Y-%m-%d %H%M"
-    ).date()  # Adjust the format string as needed
-    round, created = Round.get_or_create(
-        course_id=course.id, layout_id=layout.id, date=date_object
-    )
+        # Extract round information
+        total_score = row['Kaikki']
+        score_difference = row['+/-']
 
-    # Create the scorecard and hole scores
-    if player_name != "Par":
-        total_throws = int(row["Kaikki"]) if pd.notna(row["Kaikki"]) else None
-        total_score = int(row["Kaikki"]) if pd.notna(row["Kaikki"]) else None
-        score_difference = int(row["+/-"]) if pd.notna(row["+/-"]) else 0
-        scorecard, created = Scorecard.get_or_create(
-            player_id=player.id,
-            round_id=round.id,
-            total_score=total_score,
-            score_difference=score_difference,
-            total_throws=total_throws,
-        )
+        # Handle NaN values in total_score (convert to 0)
+        total_score = 0 if pd.isna(total_score) else total_score
 
-        for i in range(1, 25):
-            if pd.notna(row[f"Hole{i}"]):
-                hole_score, created = HoleScore.get_or_create(
-                    scorecard_id=scorecard.id,
-                    hole_number=i,
-                    strokes=int(row[f"Hole{i}"]),
-                )
+        # Create or get the round object
+        round_obj = Round.get_or_create(
+            course_id=course.id,
+            layout_id=layout.id,
+            date=date_object
+        )[0]
 
-    db.session.commit()
+        # Continue processing if the player is not 'Par'
+        if player_name != 'Par':
+            # Create or update the scorecard and associate it with the round
+            scorecard = Scorecard.get_or_create(
+                player_id=player.id,
+                round_id=round_obj.id,
+                total_score=total_score,
+                score_difference=score_difference
+            )[0]
+
+            # Create or update hole scores
+            for i in range(1, len(row) - 6):
+                if pd.notna(row[f'Hole{i}']):
+                    hole_number = i
+                    strokes = int(row[f'Hole{i}'])
+
+                    # Ensure the HoleScore is associated with the Scorecard
+                    hole_score = HoleScore.get_or_create(
+                        scorecard_id=scorecard.id,
+                        hole_number=hole_number,
+                        strokes=strokes
+                    )[0]
+
+    except Exception as e:
+        # Handle errors gracefully and provide useful information
+        print(f"Error processing row: {str(e)}")
+        raise e
+
+
+
 
 
 # Route to check if coursedata is present in the database (not needed at the moment)
@@ -234,44 +270,42 @@ def process_row(row):
 # Additional routes for your application (layouts, detailed scorecard view, etc.)
 
 
-# Route to display top scores for each course and layout (not needed at the moment)
-@app.route("/top_scores")
-def top_scores():
-    top_scores = []
-    courses = Course.query.all()
-    for course in courses:
-        layouts = CourseLayout.query.filter_by(course_id=course.id).all()
-        for layout in layouts:
-            scores = (
-                db.session.query(Scorecard.total_score, Player.name)
-                .join(Player)
-                .filter(
-                    Scorecard.round_id != None,
-                    Scorecard.total_score != None,
-                    Scorecard.total_throws != None,
-                    Scorecard.score_difference != None,
-                    Scorecard.score_difference >= 0,
-                    Scorecard.score_difference <= 2,
-                    Scorecard.player_id == Player.id,
-                    Scorecard.round_id == Round.id,
-                    Round.course_id == course.id,
-                    Round.layout_id == layout.id,
-                )
-                .order_by(Scorecard.total_score)
-                .limit(10)
-                .all()
-            )
-            top_scores.append(
-                {
-                    "course": course.name,
-                    "layout": layout.layout_name,
-                    "scores": [
-                        {"name": score[1], "score": score[0]} for score in scores
-                    ],
-                }
-            )
-    return jsonify(top_scores)
 
+@app.route('/hole_scores/<int:scorecard_id>')
+def hole_scores(scorecard_id):
+    scorecard = Scorecard.query.get_or_404(scorecard_id)
+
+    hole_scores = db.session.query(
+        HoleScore.hole_number,
+        HoleScore.strokes,
+        CourseLayout.layout_name,
+        Course.name
+    ).select_from(HoleScore).join(
+        Scorecard,
+        Scorecard.id == HoleScore.scorecard_id
+    ).join(
+        Round,
+        Round.id == Scorecard.round_id
+    ).join(
+        CourseLayout,
+        CourseLayout.id == Round.layout_id
+    ).join(
+        Course,
+        Course.id == Round.course_id
+    ).filter(
+        HoleScore.scorecard_id == scorecard.id
+    ).all()
+
+    return jsonify([
+        {
+            'hole_number': hole_number,
+            'strokes': strokes,
+            'layout_name': layout_name,
+            'course_name': course_name
+        }
+        for hole_number, strokes, layout_name, course_name in hole_scores
+    ])
+    
 
 @app.route("/layouts_for_course/<course_name>")
 def layouts_for_course(course_name):
@@ -346,39 +380,39 @@ def scorecard(scorecard_id):
         par_values=par_values,
     )
 
-
-@app.route("/scorecards_for_player_course_layout")
-def scorecards_for_player_course_layout():
-    player_name = request.args.get("player_name")
-    course_name = request.args.get("course_name")
-    layout_name = request.args.get("layout_name")
-
+@app.route("/scorecards_for_player_course_and_layout/player/<player_name>/course/<course_name>/layout/<layout_name>/limit/<int:limit>")
+def scorecards_for_player_course_layout(player_name, course_name, layout_name, limit):
     player = Player.query.filter_by(name=player_name).first()
     course = Course.query.filter_by(name=course_name).first()
-    layout = CourseLayout.query.filter_by(
-        layout_name=layout_name, course_id=course.id
-    ).first()
+    layout = CourseLayout.query.filter_by(layout_name=layout_name, course_id=course.id).first()
 
-    scorecards = (
-        Scorecard.query.filter_by(player_id=player.id)
-        .join(Round)
-        .filter(Round.course_id == course.id, Round.layout_id == layout.id)
-        .all()
+    scorecards_query = (
+        db.session.query(Scorecard, db.func.min(Scorecard.score_difference).label('min_score_difference'))
+        .join(Player, Scorecard.player_id == Player.id)
+        .join(Round, Scorecard.round_id == Round.id)
+        .join(Course, Round.course_id == Course.id)
+        .join(CourseLayout, Round.layout_id == CourseLayout.id)
+        .filter(Player.name == player_name, Course.name == course_name, CourseLayout.layout_name == layout_name)
+        .group_by(Scorecard.id)
+        .order_by('min_score_difference')
+        .limit(limit)
     )
+
+    scorecards = scorecards_query.all()
 
     return jsonify(
         [
             {
-                "id": scorecard.id,
-                "player_id": scorecard.player_id,
-                "round_id": scorecard.round_id,
-                "total_score": scorecard.total_score,
-                "score_difference": scorecard.score_difference,
-                "total_throws": scorecard.total_throws,
+                "id": scorecard.Scorecard.id,
+                "player_id": scorecard.Scorecard.player_id,
+                "round_id": scorecard.Scorecard.round_id,
+                "total_score": scorecard.Scorecard.total_score,
+                "score_difference": scorecard.Scorecard.score_difference,
+                "min_score_difference": scorecard.min_score_difference,
                 "hole_scores": [
                     hole_score.strokes
                     for hole_score in HoleScore.query.filter_by(
-                        scorecard_id=scorecard.id
+                        scorecard_id=scorecard.Scorecard.id
                     ).all()
                 ],
             }
@@ -387,44 +421,39 @@ def scorecards_for_player_course_layout():
     )
 
 
-@app.route("/scorecard_data/<player_name>/<course_name>/<layout_name>")
-def scorecard_data(player_name, course_name, layout_name):
-    print(f"course_name: {course_name}")
 
-    player = Player.query.filter_by(name=player_name).first()
-    course = Course.query.filter_by(name=course_name).first()
-
-    if course is None:
-        return jsonify({"error": "No course found with the specified name"}), 404
-
-    layout = CourseLayout.query.filter_by(
-        layout_name=layout_name, course_id=course.id
-    ).first()
-    print(f"course: {course}")
-
-    scorecards = (
-        Scorecard.query.filter_by(player_id=player.id)
-        .join(Round)
-        .filter(Round.course_id == course.id, Round.layout_id == layout.id)
-        .all()
+@app.route("/scorecard_data/<player_name>/<course_name>/<layout_name>/<int:limit>")
+def scorecard_data(player_name, course_name, layout_name, limit):
+    scorecards_query = (
+        db.session.query(Scorecard, db.func.min(Scorecard.score_difference).label('min_score_difference'))
+        .join(Player, Scorecard.player_id == Player.id)
+        .join(Round, Scorecard.round_id == Round.id)
+        .join(Course, Round.course_id == Course.id)
+        .join(CourseLayout, Round.layout_id == CourseLayout.id)
+        .filter(Player.name == player_name, Course.name == course_name, CourseLayout.layout_name == layout_name)
+        .group_by(Scorecard.id)
+        .order_by('min_score_difference')
+        .limit(limit)
     )
-    # here is where we print the scorecard data
+
+    scorecards = scorecards_query.all()
+
     return jsonify(
         [
             {
-                "id": scorecard.id,
-                "player_id": scorecard.player_id,
-                "player_name": player.name,
-                "course_name": course.name,
-                "layout_name": layout.layout_name,
-                "round_id": scorecard.round_id,
-                "total_score": scorecard.total_score,
-                "score_difference": scorecard.score_difference,
-                "total_throws": scorecard.total_throws,
+                "id": scorecard.Scorecard.id,
+                "player_id": scorecard.Scorecard.player_id,
+                "player_name": player_name,
+                "course_name": course_name,
+                "layout_name": layout_name,
+                "round_id": scorecard.Scorecard.round_id,
+                "total_score": scorecard.Scorecard.total_score,
+                "score_difference": scorecard.Scorecard.score_difference,
+                "min_score_difference": scorecard.min_score_difference,
                 "hole_scores": [
                     hole_score.strokes
                     for hole_score in HoleScore.query.filter_by(
-                        scorecard_id=scorecard.id
+                        scorecard_id=scorecard.Scorecard.id
                     ).all()
                 ],
             }
@@ -464,6 +493,39 @@ def index():
         layouts=layouts,
         scorecards=scorecards,
     )
+# create the route for players_for_course_and_layout:
+@app.route("/players_for_course_and_layout/<course_name>/<layout_name>")
+def players_for_course_and_layout(course_name, layout_name):
+    course = Course.query.filter_by(name=course_name).first()
+    layout = CourseLayout.query.filter_by(
+        layout_name=layout_name, course_id=course.id
+    ).first()
+    round_ids = (
+        db.session.query(Scorecard.round_id)
+        .join(Round)
+        .filter(Round.course_id == course.id, Round.layout_id == layout.id)
+        .distinct()
+    )
+    player_ids = (
+        db.session.query(Scorecard.player_id)
+        .filter(Scorecard.round_id.in_(round_ids))
+        .distinct()
+    )
+    players = Player.query.filter(Player.id.in_(player_ids)).all()
+    return jsonify([player.name for player in players])
+
+
+# create the route for courses_for_all_players:
+@app.route("/courses_for_all_players/")
+def courses_for_all_players():
+    courses = (
+        db.session.query(Course.name)
+        .join(Round)
+        .filter(Round.course_id == Course.id)
+        .distinct()
+        .all()
+    )
+    return jsonify([course[0] for course in courses])
 
 
 # the /upload route is not needed at the moment
