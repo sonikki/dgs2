@@ -15,6 +15,9 @@ window.onload = function () {
     const updatedEvent = new Event('updated');
 
     function fetchData(endpoint, selectElement, defaultOptionText) {
+        // Log the URL being fetched
+        console.log('Fetching URL:', endpoint);
+    
         loadingIndicatorElement.style.display = 'block';
         return fetch(endpoint)
             .then(response => {
@@ -34,9 +37,8 @@ window.onload = function () {
                     }
                     loadingIndicatorElement.style.display = 'none';
                     if (selectElement.options.length > 1) {
-                        selectElement.selectedIndex = 0;  // Set to 0 to trigger 'change' event
+                        selectElement.selectedIndex = 1;
                         selectElement.dispatchEvent(updatedEvent);
-                        console.log('Event dispatched:', updatedEvent);
                     }
                 }
             })
@@ -44,12 +46,21 @@ window.onload = function () {
                 console.error('There has been a problem with your fetch operation:', error);
             });
     }
+    
 
     function updateLayouts() {
         let selectedCourseName = courseNameElement.options[courseNameElement.selectedIndex].text;
+        
+        // Check if a valid course name is selected
+        if (selectedCourseName === 'Select a Course') {
+            console.log('No valid course selected');
+            return;
+        }
+    
         let fetchUrl = `/layouts_for_course/${encodeURIComponent(selectedCourseName)}`;
         fetchData(fetchUrl, layoutNameElement, 'Select a Layout');
     }
+    
 
     function updatePlayers() {
         let selectedCourseName = courseNameElement.options[courseNameElement.selectedIndex].text;
