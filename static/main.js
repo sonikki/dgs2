@@ -34,8 +34,9 @@ window.onload = function () {
                     }
                     loadingIndicatorElement.style.display = 'none';
                     if (selectElement.options.length > 1) {
-                        selectElement.selectedIndex = 1;
+                        selectElement.selectedIndex = 0;  // Set to 0 to trigger 'change' event
                         selectElement.dispatchEvent(updatedEvent);
+                        console.log('Event dispatched:', updatedEvent);
                     }
                 }
             })
@@ -44,8 +45,34 @@ window.onload = function () {
             });
     }
 
+    function updateLayouts() {
+        let selectedCourseName = courseNameElement.options[courseNameElement.selectedIndex].text;
+        let fetchUrl = `/layouts_for_course/${encodeURIComponent(selectedCourseName)}`;
+        fetchData(fetchUrl, layoutNameElement, 'Select a Layout');
+    }
+
+    function updatePlayers() {
+        let selectedCourseName = courseNameElement.options[courseNameElement.selectedIndex].text;
+        let selectedLayoutName = layoutNameElement.options[layoutNameElement.selectedIndex].text;
+        let fetchUrl = `/players_for_course_and_layout/${encodeURIComponent(selectedCourseName)}/${encodeURIComponent(selectedLayoutName)}`;
+        fetchData(fetchUrl, playerNameElement, 'Select a Player');
+    }
+
+    courseNameElement.addEventListener('change', () => {
+        updateLayouts();
+    });
+
+    layoutNameElement.addEventListener('change', () => {
+        updatePlayers();
+    });
+
+    scorecardFormElement.addEventListener('submit', (event) => {
+        // ... (unchanged)
+    });
+
     // Fetch the courses data when the page loads
     fetchData('/courses_for_all_players', courseNameElement, 'Select a Course');
+
 
     courseNameElement.addEventListener('updated', () => {
         // Fetch the layouts data when a course is selected
@@ -59,6 +86,7 @@ window.onload = function () {
         let selectedCourseName = courseNameElement.options[courseNameElement.selectedIndex].text;
         let selectedLayoutName = layoutNameElement.options[layoutNameElement.selectedIndex].text;
         let fetchUrl = `/players_for_course_and_layout/${encodeURIComponent(selectedCourseName)}/${encodeURIComponent(selectedLayoutName)}`;
+        console.log('Layouts fetch URL:', fetchUrl); // Added for debugging
         fetchData(fetchUrl, playerNameElement, 'Select a Player');
     });
 
