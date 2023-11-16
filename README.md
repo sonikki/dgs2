@@ -12,8 +12,8 @@ This application allows users to track their disc golf scores. It provides an in
 
 ## Installation
 
-1. Clone this repository: `git clone https://github.com/yourusername/golf-scorecard.git`
-2. Navigate to the project directory: `cd golf-scorecard`
+1. Clone this repository: `git clone https://github.com/sonikki/dgs2`
+2. Navigate to the project directory: `cd dgs`
 3. Install the dependencies: `npm install`
 4. Start the application: `npm start`
 
