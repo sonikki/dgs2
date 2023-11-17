@@ -1,16 +1,27 @@
 #%%
 from flask import Flask, flash, abort, request, redirect, jsonify, render_template
+from models import db, MetaData, Player, Course, Layout, Round, Scorecard, HoleScore
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.sql.elements import ClauseElement
-from sqlalchemy import Column, String, Date, Integer, DateTime, ForeignKey
-from sqlalchemy.orm import declarative_base
 from flask_migrate import Migrate
 from datetime import datetime
 from sqlalchemy.orm.exc import NoResultFound
-
 import pandas as pd
 from sqlalchemy import func
 from flask import jsonify
+from data_loader import load_data
+
+def create_app():
+    app = Flask(__name__)
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///dgs.db"
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+    db.init_app(app)
+
+    return app
+
+app = create_app()
+migrate = Migrate(app, db)
+
 
 
 def is_valid_login(username, password):
@@ -18,222 +29,7 @@ def is_valid_login(username, password):
     return True
 
 
-app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///dgs.db"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
-
 #%%
-        
-Base = declarative_base()
-class MetaData(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    last_processed_timestamp = db.Column(
-        db.DateTime, nullable=False, server_default=func.now()
-    )
-
-def get_last_processed_timestamp():
-    meta_data = MetaData.query.first()
-    if meta_data:
-        return meta_data.last_processed_timestamp
-    else:
-        return None
-
-
-def update_last_processed_timestamp(timestamp):
-    # Convert the timestamp to a string
-    timestamp_str = timestamp.strftime("%Y-%m-%d %H%M")
-
-    # Fetch the MetaData row from the database
-    meta_data = MetaData.query.first()
-
-    # Update the last_processed_timestamp field and commit the changes
-    meta_data.last_processed_timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H%M")
-    db.session.commit()
-
-
-#%%
-# Define database models
-
-
-# BaseModel is an abstract base class for all other models. It provides common methods that can be used by all models.
-class BaseModel(db.Model):
-    __abstract__ = True
-
-    @classmethod
-    def get_or_create(cls, defaults=None, commit=True, **kwargs):
-        try:
-            instance = db.session.query(cls).filter_by(**kwargs).first()
-            if instance:
-                return instance, False
-            else:
-                params = {k: v for k, v in kwargs.items() if not isinstance(v, ClauseElement)}
-                params.update(defaults or {})
-                instance = cls(**params)
-                db.session.add(instance)
-                if commit:
-                    db.session.commit()  # Commit here to get the auto-generated IDs
-                return instance, True
-        except Exception as e:
-            print("Error in get_or_create:", str(e))
-            db.session.rollback()
-            raise e
-
-
-
-class RowProcessed(Base):
-    __tablename__ = 'row_processed'
-
-    id = Column(Integer, primary_key=True)
-    player_name = Column(String)
-    date = Column(Date)
-
-
-
-class Player(BaseModel):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255), nullable=False)
-
-class Course(BaseModel):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255), nullable=False)
-
-class Layout(BaseModel):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255), nullable=False)
-    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
-
-class Round(BaseModel):
-    id = db.Column(db.Integer, primary_key=True)
-    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
-    layout_id = db.Column(db.Integer, db.ForeignKey('layout.id'), nullable=False)
-    date = db.Column(db.DateTime, nullable=False)
-
-    # Add relationships to Course and Layout
-    course = db.relationship('Course', foreign_keys=[course_id], backref=db.backref('rounds', lazy=True))
-    layout = db.relationship('Layout', foreign_keys=[layout_id], backref=db.backref('rounds', lazy=True))
-
-
-class Scorecard(BaseModel):
-    id = db.Column(db.Integer, primary_key=True)
-    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
-    round_id = db.Column(db.Integer, db.ForeignKey('round.id'), nullable=False)
-    total_score = db.Column(db.Integer, nullable=False)
-    score_difference = db.Column(db.Integer, nullable=False)
-    date = db.Column(db.DateTime, nullable=False)
-
-class HoleScore(BaseModel):
-    id = db.Column(db.Integer, primary_key=True)
-    scorecard_id = db.Column(db.Integer, db.ForeignKey('scorecard.id'), nullable=False)
-    hole_number = db.Column(db.Integer, nullable=False)
-    strokes = db.Column(db.Integer, nullable=False)
-
-
-
-
-#%%
-
-def load_data(filename):
-    try:
-        meta_data = MetaData.query.first()
-        if meta_data is None:
-            meta_data = MetaData(last_processed_timestamp=datetime.min)
-            db.session.add(meta_data)
-
-        df = pd.read_csv(filename)
-        print(df['Kaikki'].unique())
-
-        last_processed_timestamp = get_last_processed_timestamp() or datetime.min
-
-        # Filter rows based on timestamp
-        df['Päivämäärä'] = pd.to_datetime(df['Päivämäärä'], format='%Y-%m-%d %H%M')
-        df = df[df['Päivämäärä'].apply(lambda x: x.to_pydatetime() >= last_processed_timestamp)]
-
-        # Process the filtered rows
-        for _, row in df.iterrows():
-            process_row(row)
-
-        # Update the last processed timestamp
-        if not df.empty:
-            max_processed_timestamp = df['Päivämäärä'].max().to_pydatetime()
-            update_last_processed_timestamp(max_processed_timestamp)
-
-        # Print counters
-        print(f"Processed {len(df)} rows")
-
-    except Exception as e:
-        print("Error loading data:", str(e))
-        db.session.rollback()
-
-
-
-
-
-#%%
-
-
-def process_row(row):
-    try:
-        player_name = row['PlayerName'].strip()
-        player, _ = Player.get_or_create(name=player_name)
-
-        course_name = row['CourseName']
-        course, _ = Course.get_or_create(name=course_name)
-
-        layout_name = row['LayoutName']
-        layout, _ = Layout.get_or_create(
-            course_id=course.id,
-            name=layout_name
-        )
-
-        date_object = row['Päivämäärä'].to_pydatetime()
-
-        # Fill in the "Kaikki" column for the 'Par' player
-        if player_name == 'Par':
-            row['Kaikki'] = 0  # Set a default value for the 'Par' player
-
-        total_score = row['Kaikki']
-        score_difference = row['+/-']
-        if pd.isna(score_difference):
-            score_difference = 0
-
-        # Create or get the round object
-        round_obj, _ = Round.get_or_create(
-            course_id=course.id,
-            layout_id=layout.id,
-            date=date_object
-        )
-
-        # Get or create the scorecard for the player and the round
-        scorecard, _ = Scorecard.get_or_create(
-            player_id=player.id,
-            round_id=round_obj.id,
-            total_score=total_score,
-            score_difference=score_difference,
-            date=date_object
-        )
-
-        # Using DataFrame operations to iterate over holes
-        for hole_number in range(1, 25):
-            if pd.notna(row[f'Hole{hole_number}']):
-                strokes = int(row[f'Hole{hole_number}'])
-                # Ensure the HoleScore is associated with the correct Scorecard
-                hole_score, _ = HoleScore.get_or_create(
-                    scorecard_id=scorecard.id,
-                    hole_number=hole_number,
-                    strokes=strokes
-                )
-                # print(f"Hole {hole_number}: {strokes}")
-
-    except Exception as e:
-        print("Error processing row:", str(e))
-        raise e
-
-
-
-#%%
-
 
 @app.route('/hole_scores/<int:scorecard_id>')
 def hole_scores(scorecard_id):
