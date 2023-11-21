@@ -189,6 +189,11 @@ window.onload = function () {
             ["player_name", "course_name", "layout_name", "total_score", "score_difference", "date"].forEach((property) => {
                 let cell = document.createElement("td");
                 cell.textContent = scorecard[property];
+                // if the property is "date", format it as a date
+                if (property === "date") {
+                    cell.textContent = new Date(scorecard[property]).toLocaleDateString();
+                }
+
                 row.appendChild(cell);
             });
             tbody.appendChild(row);

@@ -135,6 +135,7 @@ def scorecard_data(player_name, course_name, layout_name, limit):
             Scorecard.round_id,
             Scorecard.total_score,
             Scorecard.score_difference,
+            Scorecard.date,
             db.func.min(Scorecard.score_difference).label('min_score_difference'))
         .join(Player, Scorecard.player_id == player.id)
         .join(Round, Scorecard.round_id == Round.id)
@@ -159,6 +160,7 @@ def scorecard_data(player_name, course_name, layout_name, limit):
         [
             {
                 "id": scorecard.id,
+                "date": scorecard.date,
                 "player_id": scorecard.player_id,
                 "round_id": scorecard.round_id,
                 "total_score": scorecard.total_score,
@@ -269,6 +271,8 @@ def register():
         confirm_password = request.form["confirm-password"]
         # Add your registration logic here, e.g., store the user in a database
         # After successful registration, you might redirect the user to the login page
+        
+
         return redirect("/")
     return render_template("register.html")
 
