@@ -10,12 +10,17 @@ from sqlalchemy import func
 from flask import jsonify
 from data_loader import load_data
 from flask_migrate import Migrate
+from werkzeug.security import generate_password_hash
+from werkzeug.security import check_password_hash
+from models import User
+from flask import redirect, url_for
 import json
 
 def create_app():
     app = Flask(__name__)
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///statistics.db"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config['SECRET_KEY'] = 'dgs_avain'
 
     db.init_app(app)
 
@@ -23,12 +28,6 @@ def create_app():
 
 app = create_app()
 migrate = Migrate(app, db)
-
-
-
-def is_valid_login(username, password):
-    # For now, just return True to allow access but can be customized in future
-    return True
 
 
 @app.route('/hole_scores/<int:scorecard_id>')
@@ -275,16 +274,18 @@ def courses_for_all_players():
 @app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        # Check the username and password entered by the user
-        # You can add your authentication logic here
-        if is_valid_login(request.form["username"], request.form["password"]):
-            # If the login is valid, redirect the user to the main page
-            return redirect("/index")  # Redirect to the main page
+        username = request.form["username"]
+        password = request.form["password"]
+
+        # Query the user by username or email
+        user = User.query.filter((User.username == username) | (User.email == username)).first()
+
+        if user and check_password_hash(user.password_hash, password):
+            # Password matches, redirect the user to the main page
+            return redirect("/index")
         else:
-            # If the login is not valid, show an error message or redirect to the login page again
-            return render_template(
-                "login.html", error_message="Invalid login credentials"
-            )
+            # Invalid credentials, show an error message or redirect to the login page again
+            return render_template("login.html", error_message="Invalid login credentials")
 
     return render_template("login.html")
 
@@ -295,12 +296,29 @@ def register():
         # Process registration form data
         username = request.form["username"]
         password = request.form["password"]
+        email = request.form["email"]
         confirm_password = request.form["confirm-password"]
-        # Add your registration logic here, e.g., store the user in a database
-        # After successful registration, you might redirect the user to the login page
         
+        # Check if username already exists
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user:
+            flash("Username already exists. Please choose a different one.")
+            return redirect("/register")
+        
+         # Check if passwords match
+        if password != confirm_password:
+            flash("Passwords do not match. Please try again.")
+            return redirect("/register")
+        
+         # Create a new user and add it to the database
+        new_user = User(username=username, email=email)
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
 
-        return redirect("/")
+        flash("Registration successful! Please log in.")
+
+        return redirect(url_for("login"))
     return render_template("register.html")
 
 
