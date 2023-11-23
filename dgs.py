@@ -9,10 +9,12 @@ import pandas as pd
 from sqlalchemy import func
 from flask import jsonify
 from data_loader import load_data
+from flask_migrate import Migrate
+import json
 
 def create_app():
     app = Flask(__name__)
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///dgs.db"
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///statistics.db"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     db.init_app(app)
@@ -29,15 +31,15 @@ def is_valid_login(username, password):
     return True
 
 
-#%%
-
 @app.route('/hole_scores/<int:scorecard_id>')
 def hole_scores(scorecard_id):
     scorecard = Scorecard.query.get_or_404(scorecard_id)
 
+    # Retrieve hole scores and par value from the Layout table
     hole_scores = db.session.query(
         HoleScore.hole_number,
         HoleScore.strokes,
+        Layout.par_values.label('par'),  # Fetch par_values from the Layout table
         Layout.name,
         Course.name
     ).select_from(HoleScore).join(
@@ -56,16 +58,40 @@ def hole_scores(scorecard_id):
         HoleScore.scorecard_id == scorecard.id
     ).all()
 
-    return jsonify([
+    # Include par value for the specific hole in the JSON response
+    response_data = [
         {
             'hole_number': hole_number,
             'strokes': strokes,
+            'par': json.loads(par)[hole_number - 1],  # Extract par value for the specific hole
             'layout_name': layout_name,
-            'course_name': course_name
+            'course_name': course_name,
         }
-        for hole_number, strokes, layout_name, course_name in hole_scores
-    ])
+        for hole_number, strokes, par, layout_name, course_name in hole_scores
+    ]
+
+    return jsonify(response_data)
+
     
+
+@app.route('/par/<course_name>/<layout_name>')
+def get_par(course_name, layout_name):
+    try:
+        # Query the Course and Layout models
+        course = Course.query.filter_by(name=course_name).first()
+        layout = Layout.query.filter_by(name=layout_name, course_id=course.id).first()
+
+        if layout:
+            # Retrieve and return the par values for the layout
+            par_values = layout.get_par_values()
+            return jsonify({'par': par_values})
+        else:
+            return jsonify({'error': 'Layout not found'}), 404
+
+    except Exception as e:
+        print("Error in get_par:", str(e))
+        return jsonify({'error': 'Internal server error'}), 500
+
 
 @app.route("/layouts_for_course/<course_name>")
 def layouts_for_course(course_name):
@@ -117,6 +143,7 @@ def scorecard(scorecard_id):
         hole_scores=hole_scores,
         par_values=par_values,
     )
+
 @app.route("/scorecard_data/<player_name>/<course_name>/<layout_name>/<int:limit>")
 def scorecard_data(player_name, course_name, layout_name, limit):
     player = Player.query.filter_by(name=player_name).first()

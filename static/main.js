@@ -10,6 +10,7 @@ window.onload = function () {
         NUM_RESULTS: "num-results",
     };
     let currentData = null;
+    let par = null;
 
     // Map element IDs to their corresponding variables
     const elements = Object.fromEntries(
@@ -100,65 +101,81 @@ window.onload = function () {
         let selectedLayoutName = elements.LAYOUT_NAME.options[elements.LAYOUT_NAME.selectedIndex].text;
         let selectedPlayerName = elements.PLAYER_NAME.options[elements.PLAYER_NAME.selectedIndex].text;
         let numResults = elements.NUM_RESULTS.value;
-        let fetchUrl = `/scorecard_data/${encodeURIComponent(
-            selectedPlayerName
-        )}/${encodeURIComponent(selectedCourseName)}/${encodeURIComponent(
-            selectedLayoutName
-        )}/${encodeURIComponent(numResults)}`;
 
-        elements.LOADING_INDICATOR.style.display = "block";
-        console.log("Fetching scorecard data...");
-        fetch(fetchUrl)
-            .then((response) => {
+        // Fetch 'par' value
+        fetch(`/par/${encodeURIComponent(selectedCourseName)}/${encodeURIComponent(selectedLayoutName)}`)
+            .then(response => {
                 if (!response.ok) {
                     throw new Error("Network response was not ok");
                 }
                 return response.json();
             })
-            .then((data) => {
-                currentData = data;
-                handleScorecardData(data, numResults);
+            .then(parData => {
+                par = parData.par; // Set par here
+                console.log(`Par: ${par}`);
+
+                // Fetch scorecard data
+                let fetchUrl = `/scorecard_data/${encodeURIComponent(
+                    selectedPlayerName
+                )}/${encodeURIComponent(selectedCourseName)}/${encodeURIComponent(
+                    selectedLayoutName
+                )}/${encodeURIComponent(numResults)}`;
+
+                elements.LOADING_INDICATOR.style.display = "block";
+                console.log("Fetching scorecard data...");
+                return fetch(fetchUrl);
             })
-            .catch((error) => {
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Network response was not ok");
+                }
+                return response.json();
+            })
+            .then(data => {
+                currentData = data;
+                handleScorecardData(data, numResults, par); // Pass 'par' to handleScorecardData
+            })
+            .catch(error => {
                 console.error("There has been a problem with your fetch operation:", error);
             })
             .finally(() => {
                 elements.LOADING_INDICATOR.style.display = "none";
             });
     }
-   
-    function handleScorecardData(data, numResults) {
+
+
+    function handleScorecardData(data, numResults, par) {
         console.log("Processing data:", data);
-    
+
         if (Array.isArray(data) && data.length > 0) {
             if (numResults === "all") {
                 numResults = data.length;
             }
             data.sort((a, b) => a.total_score - b.total_score);
             data = data.slice(0, numResults);
-    
+
             // Get selected names from dropdowns
             const selectedPlayerName = elements.PLAYER_NAME.options[elements.PLAYER_NAME.selectedIndex].text;
             const selectedCourseName = elements.COURSE_NAME.options[elements.COURSE_NAME.selectedIndex].text;
             const selectedLayoutName = elements.LAYOUT_NAME.options[elements.LAYOUT_NAME.selectedIndex].text;
-    
+
             // Update player names and other details
             data.forEach(scorecard => {
                 scorecard.player_name = selectedPlayerName;
                 scorecard.course_name = selectedCourseName;
                 scorecard.layout_name = selectedLayoutName;
             });
-          
-    
-            displayScorecardResults(data);
+
+            displayScorecardResults(data, par); // Pass 'par' to displayScorecardResults
         } else {
             console.error("Invalid data format or empty response:", data);
             displayNoScorecardsMessage();
         }
     }
-    
-     
-    
+
+
+
+
     function displayNoScorecardsMessage() {
         let resultsDiv = elements.RESULTS;
         resultsDiv.innerHTML = "<p>No scorecards found for the given criteria.</p>";
@@ -167,10 +184,10 @@ window.onload = function () {
     function displayScorecardResults(data) {
         let resultsDiv = elements.RESULTS;
         resultsDiv.innerHTML = "";
-    
+
         let table = document.createElement("table");
         table.id = "scorecard-table";
-    
+
         // Header row creation...
         let thead = document.createElement("thead");
         let headerRow = document.createElement("tr");
@@ -181,7 +198,7 @@ window.onload = function () {
         });
         thead.appendChild(headerRow);
         table.appendChild(thead);
-    
+
         // Body creation...
         let tbody = document.createElement("tbody");
         data.forEach((scorecard) => {
@@ -193,15 +210,22 @@ window.onload = function () {
                 if (property === "date") {
                     cell.textContent = new Date(scorecard[property]).toLocaleDateString();
                 }
-
+                // if the property is "score_difference", add CSS class based on the score difference
+                if (property === "score_difference") {
+                    if (scorecard[property] < 0) {
+                        cell.classList.add("negative", "conditionalClass");
+                    }
+                }
                 row.appendChild(cell);
             });
             tbody.appendChild(row);
         });
         table.appendChild(tbody);
-    
+
         resultsDiv.appendChild(table);
     }
+
+
 
     function init() {
         fetchData("/courses_for_all_players", elements.COURSE_NAME, "Select a Course");
@@ -210,50 +234,82 @@ window.onload = function () {
         elements.SCORECARD_FORM.addEventListener("submit", handleScorecardForm);
     }
 
+    // Function to determine CSS class based on the hole score
+    function getHoleScoreClass(strokes, parValue) {
+        console.log(`Strokes: ${strokes}, Par: ${parValue}`);
+
+        if (strokes === 1) {
+            return "hole-in-one";
+        } else if (strokes === parValue - 1) {
+            return "birdie";
+        } else if (strokes === parValue - 2) {
+            return "eagle";
+        } else if (strokes === parValue - 3) {
+            return "albatross";
+        } else if (strokes === parValue) {
+            return "par";
+        } else if (strokes === parValue + 1) {
+            return "bogey";
+        } else if (strokes === parValue + 2) {
+            return "double-bogey";
+        } else if (strokes === parValue + 3) {
+            return "triple-bogey";
+        } else {
+            return "quatro-bogey"; // Adjust as needed
+        }
+    }
+
     function displayHoleScores(scorecardId, scorecard) {
         // Remove any existing hole scores rows
         const existingHoleScoresRow = document.querySelector(".hole-scores-row");
         if (existingHoleScoresRow) {
             existingHoleScoresRow.remove();
         }
-    
+
         // Create a new row for hole scores
         const holeScoresRow = document.createElement("tr");
         holeScoresRow.classList.add("hole-scores-row");
-    
+
         // Create a cell to span the entire row
         const cell = document.createElement("td");
         cell.colSpan = 6; // Adjust the colspan based on the number of columns in your results table
-    
+
         // Create a div to hold the hole scores content
         const holeScoresDiv = document.createElement("div");
         holeScoresDiv.textContent = "Hole Scores: Loading..."; // You can modify this message
-    
+
         // Append the hole scores div to the cell
         cell.appendChild(holeScoresDiv);
-    
+
         // Append the cell to the hole scores row
         holeScoresRow.appendChild(cell);
-    
-        // Insert the hole scores row below the clicked row
-        const clickedRow = event.target.closest("tr");
-        clickedRow.after(holeScoresRow);
-    
+
+        // Check if there's an event and it has a target
+        const clickedRow = event && event.target ? event.target.closest("tr") : null;
+        if (clickedRow) {
+            // Insert the hole scores row below the clicked row
+            clickedRow.after(holeScoresRow);
+        } else {
+            // If there's no event or target, insert it at the end of the table
+            const resultsTable = document.getElementById("scorecard-table");
+            resultsTable.appendChild(holeScoresRow);
+        }
+
         // Fetch hole scores for the scorecardId
         fetch(`/hole_scores/${scorecardId}`)
-            .then(response => {
+            .then((response) => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }
                 return response.json();
             })
-            .then(holeScores => {
+            .then((holeScores) => {
                 // Remove the loading text
                 holeScoresDiv.textContent = "";
-            
+
                 // Create a new table
                 const table = document.createElement('table');
-            
+
                 // Create a row for the headers
                 const headerRow = document.createElement('tr');
                 for (let i = 1; i <= holeScores.length; i++) {
@@ -262,28 +318,57 @@ window.onload = function () {
                     headerRow.appendChild(th);
                 }
                 table.appendChild(headerRow);
-            
+
                 // Create a row for the scores
                 const scoresRow = document.createElement('tr');
                 for (const holeScore of holeScores) {
                     const td = document.createElement('td');
                     td.textContent = holeScore.strokes;
+
+                    // Pass the par value when calling getHoleScoreClass
+                    const parValue = holeScore.par;
+                    console.log(`Strokes: ${holeScore.strokes}, Par: ${parValue}`);
+                    td.classList.add(getHoleScoreClass(holeScore.strokes, parValue));
+
                     scoresRow.appendChild(td);
                 }
+
+                // Append the scores row to the table
                 table.appendChild(scoresRow);
-            
+
                 // Append the table to the holeScoresDiv
                 holeScoresDiv.appendChild(table);
+
+                // Update the "score_difference" column in the main results table
+                const resultsTable = document.getElementById("scorecard-table");
+                const mainResultsRow = resultsTable.querySelector(".main-results-row");
+
+                if (mainResultsRow) {
+                    // Find the "score_difference" cell
+                    const scoreDifferenceCell = mainResultsRow.querySelector(".conditionalClass");
+
+                    if (scoreDifferenceCell) {
+                        // Add the "negative" class based on the score difference
+                        const scoreDifference = scorecard["score_difference"];
+                        if (scoreDifference < 0) {
+                            scoreDifferenceCell.classList.add("negative");
+                        }
+                    }
+                }
             })
-            
-            .catch(error => {
+
+            .catch((error) => {
                 console.error('There has been a problem with your fetch operation:', error);
                 // Display an error message if fetching hole scores fails
                 holeScoresDiv.textContent = "Hole Scores: Error fetching data";
             });
     }
-    
-    
+
+
+
+
+
+
     // Add an event listener for the results table
     elements.RESULTS.addEventListener("click", function (event) {
         // Check if the clicked element is a table cell (TD)
@@ -296,11 +381,19 @@ window.onload = function () {
                 // Get the data for the clicked row from the closure
                 const rowData = currentData[rowIndex - 1]; // Subtract 1 to account for the header row
 
+                // Check if hole scores are already displayed for this row
+                const existingHoleScoresRow = document.querySelector(".hole-scores-row");
+                if (existingHoleScoresRow && existingHoleScoresRow.previousElementSibling === event.target.closest("tr")) {
+                    // Hole scores are already displayed for this row, do nothing
+                    return;
+                }
+
                 // Display the hole scores for the clicked row using the scorecard_id
-                displayHoleScores(rowData.id, rowData);
+                displayHoleScores(rowData.id, rowData, event);
             }
         }
     });
+
 
 
     init();

@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy import Column, Integer, String, Date, DateTime, ForeignKey 
 from datetime import datetime
 from sqlalchemy.ext.declarative import declarative_base
+import json
 
 db = SQLAlchemy()
 
@@ -84,6 +85,20 @@ class Layout(BaseModel):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False)
     course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
+    
+    # Add a column for par values as a JSON string
+    par_values = db.Column(db.String)  
+
+    # Add a relationship to Course
+    course = db.relationship('Course', foreign_keys=[course_id], backref=db.backref('layouts', lazy=True))
+    
+    def set_par_values(self, par_values):
+        # Convert the list to a JSON string before saving
+        self.par_values = json.dumps(par_values)
+
+    def get_par_values(self):
+        # Convert the JSON string back to a list when retrieving
+        return json.loads(self.par_values) if self.par_values else []
 
 class Round(BaseModel):
     id = db.Column(db.Integer, primary_key=True)
@@ -100,9 +115,14 @@ class Scorecard(BaseModel):
     id = db.Column(db.Integer, primary_key=True)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
     round_id = db.Column(db.Integer, db.ForeignKey('round.id'), nullable=False)
+    layout_id = db.Column(db.Integer, nullable=False)  # Add the layout_id field
     total_score = db.Column(db.Integer, nullable=False)
     score_difference = db.Column(db.Integer, nullable=False)
     date = db.Column(db.DateTime, nullable=False)
+
+    # Add a relationship to Round
+    round = db.relationship('Round', foreign_keys=[round_id], backref=db.backref('scorecards', lazy=True))
+
 
 class HoleScore(BaseModel):
     id = db.Column(db.Integer, primary_key=True)

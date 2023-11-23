@@ -7,10 +7,7 @@ body {
 .negative {
     background-color: lightgreen;
 }
-.birdie {
-    background-color: green;
-    color: black
-}
+
 
 /* Style the navigation bar */
 .navbar {
@@ -106,6 +103,13 @@ table tr td:last-child {
     width: 1%;  /* Adjust as needed */
     white-space: nowrap;
 }
+
+/* Style the hole score cells within the .hole-scores-row */
+.results-table .hole-scores-row .hole-score {
+    background-color: red; /* Add your desired background color for .hole-scores-row */
+    color: white; /* Add your desired text color for .hole-scores-row */
+}
+/* Style the hole score cells */
 .hole-score {
     display: inline-block;
     text-align: center;
@@ -117,39 +121,70 @@ table tr td:last-child {
     padding: 2px 5px;
     border-radius: 5px;
 }
+
 .hole-score.hole-in-one {
     background-color: yellow;
     color: black;
 }
+.td.hole-score.hole-in-one {
+    background-color: yellow;
+    color: black;
+}
+.td.hole-in-one {
+    background-color: yellow;
+    color: black;
+}
+.td.birdie {
+    background-color: green;
+    color: black;
+}
+
 .hole-score.albatross {
     background-color: lightgreen;
     color: black;
 }
+
 .hole-score.eagle {
     background-color: blue;
     color: black;
 }
+
 .hole-score.birdie {
     background-color: lightblue;
     color: black;
 }
+
 .hole-score.par {
     background-color: #ddd;
     color: black;
 }
+
 .hole-score.bogey {
     background-color: lightsalmon;
     color: black;
 }
+
 .hole-score.double-bogey {
     background-color: red;
     color: black;
 }
+
 .hole-score.triple-bogey {
     background-color: darkred;
     color: black;
 }
+
 .hole-score.quatro-bogey {
-    background-color: black;
+    background-color: rgb(35, 1, 1);
     color: white;
+}
+
+/* Style the hole score cells within the .hole-scores-row */
+.results-table .hole-scores-row .hole-score {
+    background-color: lightcoral; /* Add your desired background color for .hole-scores-row */
+    color: white; /* Add your desired text color for .hole-scores-row */
+}
+
+.negative {
+    background-color: lightgreen;
 }
