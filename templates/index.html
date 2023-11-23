@@ -5,52 +5,80 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scorecard Selection</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/pure-min.css"
+        integrity="sha384-X38yfunGUhNzHpBaEBsWLO+A0HDYOQi8ufWDkZ0k9e0eXz/tH3II7uKZ9msv++Ls" crossorigin="anonymous">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="favicon" href="{{ url_for('static', filename='favicon.ico') }}">
     <script src="{{ url_for('static', filename='main.js') }}"></script>
 </head>
 
 <body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-4 col-lg-3 bg-light">
-                <form action="/index" method="get" id="scorecard-form">
-                    <label for="player_name">Player Name:</label><br>
-                    <select id="player_name" name="player_name" required>
-                        <option value="" disabled selected>Select a Player</option>
-                        {% for player in players %}
-                        <option value="{{ player }}">{{ player }}</option>
-                        {% endfor %}
-                    </select><br>
+    <nav role="navigation">
+        <div id="menuToggle">
+            <!---  <nav class="side-nav"> -->
+            <input type="checkbox" />
 
-                    <label for="course_name">Course Name:</label><br>
-                    <select id="course_name" name="course_name" required>
-                        <option value="" disabled selected>Select a Course</option>
-                    </select><br>
+            <span></span>
+            <span></span>
+            <span></span>
 
-                    <label for="layout_name">Layout Name:</label><br>
-                    <select id="layout_name" name="layout_name" required>
-                        <option value="" disabled selected>Select a Layout</option>
-                    </select><br>
-                    <br>
-                    <label for="num-results">Number of Results:</label>
-                    <select id="num-results">
-                        <option value="10">10</option>
-                        <option value="25">25</option>
-                        <option value="all">All</option>
-                    </select>
-                    <br>
-                    <input type="submit" value="Submit">
-                </form>
-                <div id="loading-indicator" style="display: none;">Loading...</div>
-            </div>
-            <!-- Main content -->
-            <div class="col-md-8 col-lg-9">
-                <div id="results"></div>
-            </div>
+            <ul id="menu">
+
+                <a href="/index">
+                    <li>Home</li>
+                </a>
+                <a href="#">
+                    <li>Page</li>
+                </a>
+                <a href="#">
+                    <li>Another page</li>
+                </a>
+                <a href="#" target="_blank">
+                    <li>Show me more</li>
+                </a>
+            </ul>
         </div>
+    </nav>
+
+
+
+
+
+
+    <form class="pure-form" action="/index" method="get" id="scorecard-form">
+        <label for="player_name">Player Name:</label><br>
+        <select id="player_name" name="player_name" required>
+            <option value="" disabled selected>Select a Player</option>
+            {% for player in players %}
+            <option value="{{ player }}">{{ player }}</option>
+            {% endfor %}
+        </select><br>
+
+        <label for="course_name">Course Name:</label><br>
+        <select id="course_name" name="course_name" required>
+            <option value="" disabled selected>Select a Course</option>
+        </select><br>
+
+        <label for="layout_name">Layout Name:</label><br>
+        <select id="layout_name" name="layout_name" required>
+            <option value="" disabled selected>Select a Layout</option>
+        </select><br>
+
+        <label for="num-results">Number of Results:</label><br>
+        <select id="num-results">
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="all">All</option>
+        </select>
+
+        <br>
+        <input type="submit" value="Submit">
+        </fieldset>
+    </form>
+    <div id="loading-indicator" style="display: none;">Loading...</div>
+    <!-- Main content -->
+    <div class="col-md-8 col-lg-9">
+        <div id="results"></div>
     </div>
 </body>
 
