@@ -12,17 +12,21 @@ from data_loader import load_data
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash
 from werkzeug.security import check_password_hash
-from models import User
+from models import db, User
 from flask import redirect, url_for
 import json
 
 def create_app():
     app = Flask(__name__)
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///statistics.db"
+    app.config["SQLALCHEMY_BINDS"] = {
+        'users': 'sqlite:///users.db'
+    }
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config['SECRET_KEY'] = 'dgs_avain'
 
     db.init_app(app)
+ 
 
     return app
 
@@ -280,7 +284,7 @@ def login():
         # Query the user by username or email
         user = User.query.filter((User.username == username) | (User.email == username)).first()
 
-        if user and check_password_hash(user.password_hash, password):
+        if user and user.check_password(password):
             # Password matches, redirect the user to the main page
             return redirect("/index")
         else:
@@ -321,9 +325,9 @@ def register():
         return redirect(url_for("login"))
     return render_template("register.html")
 
-
 if __name__ == "__main__":
     with app.app_context():
+        db.create_all()
         db.create_all()
         filename = "UDisc Scorecards.csv"
         load_data(filename)  # Load data when the application starts

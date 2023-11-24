@@ -9,6 +9,7 @@ import json
 
 db = SQLAlchemy()
 
+
 Base = declarative_base()
 class MetaData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -132,6 +133,7 @@ class HoleScore(BaseModel):
     strokes = db.Column(db.Integer, nullable=False)
 
 class User(db.Model):
+    __bind_key__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)

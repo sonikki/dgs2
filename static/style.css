@@ -12,6 +12,31 @@ body {
     background-color: green;
     color: black
 }
+.hole-in-one {
+    background-color: yellow;
+    color: black;
+}
+
+.bogey {
+    background-color: lightsalmon;
+    color: black;
+}
+
+.double-bogey {
+    background-color: red;
+    color: black;
+}
+
+.eagle {
+    background-color: rgb(3, 0, 100);
+    color: black;
+}
+
+
+.triple-bogey {
+    background-color: darkred;
+    color: black;
+}
 
 /* Style the navigation bar */
 .navbar {
@@ -134,50 +159,7 @@ table tr td:last-child {
     border-radius: 5px;
 }
 
-.hole-score.hole-in-one {
-    background-color: yellow;
-    color: black;
-}
 
-.hole-score.albatross {
-    background-color: lightgreen;
-    color: black;
-}
-
-.hole-score.eagle {
-    background-color: blue;
-    color: black;
-}
-
-.hole-score.birdie {
-    background-color: lightblue;
-    color: black;
-}
-
-.hole-score.par {
-    background-color: #ddd;
-    color: black;
-}
-
-.hole-score.bogey {
-    background-color: lightsalmon;
-    color: black;
-}
-
-.hole-score.double-bogey {
-    background-color: red;
-    color: black;
-}
-
-.hole-score.triple-bogey {
-    background-color: darkred;
-    color: black;
-}
-
-.hole-score.quatro-bogey {
-    background-color: black;
-    color: white;
-}
 
 
 #results {

@@ -54,7 +54,7 @@ def get_par_for_hole(layout_id, hole_number):
             return par_values[hole_number - 1]
     return None
 
-
+layout_holes = {}  # Dictionary for storing the number of holes for each layout
 
 # counter for rows processed for debugging purposes
 def process_data(data):
@@ -100,8 +100,8 @@ def process_row(row):
             date=date_object
         )
 
-        # Get or create the scorecard for the player and the round
-        scorecard, _ = Scorecard.get_or_create(
+        # Create a Scorecard instance
+        scorecard, created = Scorecard.get_or_create(
             player_id=player.id,
             round_id=round_obj.id,
             layout_id=layout.id,  
@@ -110,21 +110,32 @@ def process_row(row):
             date=date_object
         )
 
-        # Using DataFrame operations to iterate over holes
-        for hole_number in range(1, 25):
-            if pd.notna(row[f'Hole{hole_number}']):
-                strokes = int(row[f'Hole{hole_number}'])
-                # Retrieve par value for the hole
-                par = get_par_for_hole(layout.id, hole_number)
-                # Set a default value for par if it is None
-                par = par if par is not None else 0
-                # Ensure the HoleScore is associated with the correct Scorecard
-                hole_score, _ = HoleScore.get_or_create(
-                    scorecard_id=scorecard.id,
-                    hole_number=hole_number,
-                      strokes=strokes                    
-                )
+        # Get the layout ID
+        layout_id = layout.id
 
+        # If the layout ID is not in the dictionary, add it
+        if layout_id not in layout_holes:
+            layout_holes[layout_id] = len([col for col in row.index if col.startswith('Hole') and pd.notna(row[col])])
+
+        # Check if the player has missing holes within the layout
+        if pd.isna(row[[f'Hole{hole_number}' for hole_number in range(1, layout_holes[layout_id] + 1)]]).any():
+            # If there are missing holes, remove the scorecard and skip the rest of the loop
+            scorecard.delete_instance()
+            return
+
+        # Use the number of holes for the layout from the dictionary
+        for hole_number in range(1, layout_holes[layout_id] + 1):
+            strokes = int(row[f'Hole{hole_number}'])
+            # Retrieve par value for the hole
+            par = get_par_for_hole(layout.id, hole_number)
+            # Set a default value for par if it is None
+            par = par if par is not None else 0
+            # Ensure the HoleScore is associated with the correct Scorecard
+            hole_score, _ = HoleScore.get_or_create(
+                scorecard_id=scorecard.id,
+                hole_number=hole_number,
+                strokes=strokes                    
+            )
 
     except Exception as e:
         print("Error processing row:", str(e))
