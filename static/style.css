@@ -1,3 +1,5 @@
+css:
+
 /* Set the font family and size for the entire page */
 body {
     font-family: Arial, sans-serif;
@@ -198,31 +200,7 @@ input[type="submit"]:hover {
 }
 
 
-/*.side-nav {
-    height: 100%;
-    position: fixed;
-    float: left;
-    width: 200px;
-    background-color: #f4e9e9;
-    padding-top: 60px;
-    padding-right: 50px;
 
-}
-
-
-
-.side-nav a {
-    padding: 10px 10px 4px 50px;
-    font-size: 25px;
-    color: #000000;
-    display: block;
-    align-items: center;
-}
-
-.side-nav a:hover {
-    color: #000000;
-}
-*/
 
 
 #menuToggle {
@@ -278,7 +256,7 @@ input[type="submit"]:hover {
     position: relative;
     top: -13px;
 
-    background: #cdcdcd;
+    background: darkblue;
     border-radius: 3px;
 
     z-index: 1;
@@ -356,4 +334,35 @@ input[type="submit"]:hover {
  */
 #menuToggle input:checked~ul {
     transform: none;
+}
+
+
+.fa-user {
+    padding-left: 5px;
+    padding-right: 5px;
+    color: darkblue;
+}
+
+.fa-map {
+    padding-left: 5px;
+    padding-right: 5px;
+    color: darkblue;
+}
+
+.fa-display {
+    padding-left: 5px;
+    padding-right: 5px;
+    color: darkblue;
+}
+
+.fa-list-ol {
+    padding-left: 5px;
+    padding-right: 5px;
+    color: darkblue;
+}
+
+.fa-magnifying-glass {
+    padding-left: 5px;
+    padding-right: 5px;
+    color: darkblue;
 }
