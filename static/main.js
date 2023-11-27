@@ -11,6 +11,7 @@ window.onload = function () {
     };
     let currentData = null;
     let par = null;
+    let selectedPlayerName = null;
 
     // Map element IDs to their corresponding variables
     const elements = Object.fromEntries(
@@ -69,7 +70,7 @@ window.onload = function () {
             option.text = typeof item === "string" ? item : item.name;
             selectElement.appendChild(option);
         }
-        selectElement.selectedIndex = 1;
+        
         selectElement.dispatchEvent(updatedEvent);
     }
 
@@ -86,14 +87,35 @@ window.onload = function () {
     }
 
     function updatePlayers() {
-        let selectedCourseName = elements.COURSE_NAME.options[elements.COURSE_NAME.selectedIndex].text;
-        let selectedLayoutName = elements.LAYOUT_NAME.options[elements.LAYOUT_NAME.selectedIndex].text;
-        let fetchUrl = `/players_for_course_and_layout/${encodeURIComponent(
-            selectedCourseName
-        )}/${encodeURIComponent(selectedLayoutName)}`;
-        fetchData(fetchUrl, elements.PLAYER_NAME, "Select a Player");
+        let selectedCourseName = elements.COURSE_NAME.options[elements.COURSE_NAME.selectedIndex]?.text;
+        let selectedLayoutName = elements.LAYOUT_NAME.options[elements.LAYOUT_NAME.selectedIndex]?.text;
+        selectedPlayerName = elements.PLAYER_NAME.options[elements.PLAYER_NAME.selectedIndex]?.text;
+    
+        console.log("Selected Course:", selectedCourseName);
+        console.log("Selected Layout:", selectedLayoutName);
+        console.log("Selected Player:", selectedPlayerName);
+    
+        // Check if both course and layout are selected before fetching players
+        if (selectedCourseName && selectedLayoutName) {
+            let fetchUrl = `/players_for_course_and_layout/${encodeURIComponent(
+                selectedCourseName
+            )}/${encodeURIComponent(selectedLayoutName)}`;
+            fetchData(fetchUrl, elements.PLAYER_NAME, "Select a Player")
+                .then(() => {
+                    // After updating players, reselect the previously selected player
+                    if (selectedPlayerName) {
+                        elements.PLAYER_NAME.value = selectedPlayerName;
+                    }
+                });
+        } else {
+            console.log("Please select a valid course and layout before fetching players.");
+        }
     }
-
+    
+    
+    
+    
+    
     function handleScorecardForm(event) {
         event.preventDefault();
 
@@ -101,6 +123,13 @@ window.onload = function () {
         let selectedLayoutName = elements.LAYOUT_NAME.options[elements.LAYOUT_NAME.selectedIndex].text;
         let selectedPlayerName = elements.PLAYER_NAME.options[elements.PLAYER_NAME.selectedIndex].text;
         let numResults = elements.NUM_RESULTS.value;
+
+            // Check if a valid course, layout, and player are selected
+    if (selectedCourseName === "Select a Course" || selectedLayoutName === "Select a Layout" || selectedPlayerName === "Select a Player") {
+        console.log("Please select a valid course, layout, and player.");
+        return;
+    }
+
 
         // Fetch 'par' value
         fetch(`/par/${encodeURIComponent(selectedCourseName)}/${encodeURIComponent(selectedLayoutName)}`)
@@ -228,11 +257,26 @@ window.onload = function () {
 
 
     function init() {
-        fetchData("/courses_for_all_players", elements.COURSE_NAME, "Select a Course");
-        elements.COURSE_NAME.addEventListener("change", updateLayouts);
-        elements.LAYOUT_NAME.addEventListener("change", updatePlayers);
-        elements.SCORECARD_FORM.addEventListener("submit", handleScorecardForm);
+        console.log("Initializing...");
+        // Add event listener for player selection
+        elements.PLAYER_NAME.addEventListener("change", function () {
+            // Fetch courses for the selected player
+            fetchData(`/courses_for_player/${encodeURIComponent(selectedPlayerName)}`, elements.COURSE_NAME, "Select a Course")
+                .then(() => {
+                    // Continue with other initialization logic...
+                    elements.COURSE_NAME.addEventListener("change", updateLayouts);
+                    elements.LAYOUT_NAME.addEventListener("change", updatePlayers);
+                    elements.SCORECARD_FORM.addEventListener("submit", handleScorecardForm);
+                });
+        });
+    
+        // Delay the initial fetching of courses for all players
+        setTimeout(function () {
+            fetchData("/courses_for_all_players/", elements.COURSE_NAME, "Select a Course");
+        }, 0);
     }
+    
+
 
     // Function to determine CSS class based on the hole score
     function getHoleScoreClass(strokes, parValue) {

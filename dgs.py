@@ -1,5 +1,5 @@
 #%%
-from flask import Flask, flash, abort, request, redirect, jsonify, render_template
+from flask import Flask, flash, abort, request, redirect, jsonify, render_template, abort
 from models import db, MetaData, Player, Course, Layout, Round, Scorecard, HoleScore
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -147,16 +147,16 @@ def scorecard(scorecard_id):
         par_values=par_values,
     )
 
-@app.route("/scorecard_data/<player_name>/<course_name>/<layout_name>/<int:limit>")
+@app.route("/scorecard_data/<player_name>/<course_name>/<layout_name>/<limit>")
 def scorecard_data(player_name, course_name, layout_name, limit):
     player = Player.query.filter_by(name=player_name).first()
     course = Course.query.filter_by(name=course_name).first()
-    layout = Layout.query.filter_by(name=layout_name, course_id=course.id).first()
+    layout = Layout.query.filter_by(name=layout_name).first()
 
-    if player is None or layout is None:
-        abort(404, description="Player or Layout not found")
+    if player is None or course is None or layout is None:
+        abort(404, description="Player, Course, or Layout not found")
 
-    print(f"Player: {player_name}), Course: {course_name}, Layout: {layout_name}")
+    print(f"Player: {player_name}, Course: {course_name}, Layout: {layout_name}")
 
     scorecards_query = (
         db.session.query(
@@ -169,22 +169,23 @@ def scorecard_data(player_name, course_name, layout_name, limit):
             db.func.min(Scorecard.score_difference).label('min_score_difference'))
         .join(Player, Scorecard.player_id == player.id)
         .join(Round, Scorecard.round_id == Round.id)
-        .join(Course, Round.course_id == Course.id)
+        .join(Course, Round.course_id == course.id)
         .join(Layout, Round.layout_id == layout.id)
         .filter(Player.name == player_name, Course.name == course_name, Layout.name == layout_name)
         .group_by(Scorecard.id)
         .order_by(db.func.min(Scorecard.score_difference))
-        .limit(limit)
     )
 
-    # Remove the try-except block temporarily to get a detailed error message
-    # try:
-    scorecards = scorecards_query.all()
-    print(f"SQL Query: {scorecards_query}")
-    # except Exception as e:
-    #     # print the error message
-    #     print("Error:", str(e))
-    #     return jsonify({"error": str(e)})
+    # Conditionally apply the limit
+    if limit.lower() != "all":
+        scorecards_query = scorecards_query.limit(int(limit))
+
+    try:
+        scorecards = scorecards_query.all()
+        print(f"SQL Query: {scorecards_query}")
+    except Exception as e:
+        print("Error:", str(e))
+        return jsonify({"error": str(e)})
 
     return jsonify(
         [
@@ -206,7 +207,6 @@ def scorecard_data(player_name, course_name, layout_name, limit):
             for scorecard in scorecards
         ]
     )
-
 
 @app.route("/index", methods=["GET", "POST"])
 def index():
