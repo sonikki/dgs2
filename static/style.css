@@ -12,6 +12,7 @@ body {
     background-color: green;
     color: black
 }
+
 .hole-in-one {
     background-color: yellow;
     color: black;
@@ -329,6 +330,7 @@ input[type="submit"]:hover {
 #menu {
     position: absolute;
     width: 150px;
+    height: 77vh;
     margin: -100px 0 0 -50px;
     padding: 50px;
     padding-top: 125px;
