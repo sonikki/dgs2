@@ -366,8 +366,8 @@ input[type="submit"]:hover {
 }
 
 h1 {
-    padding-top: 10px;
-    padding-left: 260px;
+    padding-top: 5px;
+    padding-left: 450px;
 }
 
 p {
@@ -407,4 +407,10 @@ p {
 
 .about-text {
     padding-right: 10px;
+}
+
+.background {
+    width: 95%;
+    height: 503px;
+    
 }
