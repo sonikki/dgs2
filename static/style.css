@@ -372,7 +372,7 @@ h1 {
 
 .about-otsikko {
     padding-top: 10px;
-    padding-left: 260px ;
+    padding-left: 260px;
 }
 
 p {
@@ -406,8 +406,8 @@ p {
     width: 95%;
     height: 100vh;
     float: right;
-    
-    
+
+
 }
 
 .about-text {
@@ -417,5 +417,6 @@ p {
 .background {
     width: 95%;
     height: 503px;
-    
+    padding-left: 50px;
+
 }
