@@ -396,3 +396,15 @@ p {
     padding-right: 5px;
     color: darkblue;
 }
+
+.img-fluid {
+    width: 95%;
+    height: 100vh;
+    float: right;
+    
+    
+}
+
+.about-text {
+    padding-right: 10px;
+}
