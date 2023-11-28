@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en"></html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://kit.fontawesome.com/055aa16451.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Dashboard</title>
+</head>
+<body>
+    <h1>Welcome, {{ username }}!</h1>
+
+    <nav role="navigation">
+        <div id="menuToggle">
+            
+            <input type="checkbox" />
+
+            <span></span>
+            <span></span>
+            <span></span>
+
+            <ul id="menu">
+
+                <a href="/dashboard">
+                    <li>Dashboard</li>
+                </a>
+                <a href="/index">
+                    <li>Statistics</li>
+                </a>
+                <a href="/about">
+                    <li>About</li>
+                </a>
+                
+                <a class="pure-button pure-button-active" href="/">
+                    <i class="fa-solid fa-right-from-bracket" style="color: #000000;"></i>
+                </a>
+
+
+            </ul>
+
+        </div>
+    </nav>
+</body>
+</html>

@@ -14,6 +14,8 @@ from werkzeug.security import generate_password_hash
 from werkzeug.security import check_password_hash
 from models import db, User
 from flask import redirect, url_for
+from flask import session
+from datetime import timedelta
 import json
 
 def create_app():
@@ -24,6 +26,7 @@ def create_app():
     }
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config['SECRET_KEY'] = 'dgs_avain'
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 
     db.init_app(app)
  
@@ -285,8 +288,8 @@ def login():
         user = User.query.filter((User.username == username) | (User.email == username)).first()
 
         if user and user.check_password(password):
-            # Password matches, redirect the user to the main page
-            return redirect("/index")
+            session['username'] = username  # Set the username in the session
+            return render_template("dashboard.html", username=username)
         else:
             # Invalid credentials, show an error message or redirect to the login page again
             return render_template("login.html", error_message="Invalid login credentials")
@@ -328,6 +331,18 @@ def register():
 @app.route('/about')
 def about():
     return render_template('about.html')
+
+from flask import session
+
+@app.route("/dashboard")
+def dashboard():
+    if 'username' in session:
+        username = session['username']
+        return render_template("dashboard.html", username=username)
+    else:
+        # Redirect to the login page if the user is not logged in
+        return redirect(url_for("login"))
+
 
 if __name__ == "__main__":
     with app.app_context():
