@@ -1,54 +1,64 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://kit.fontawesome.com/055aa16451.js" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <title>About Our Disc Golf Statistics App</title>
-   
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/pure-min.css"
+        integrity="sha384-X38yfunGUhNzHpBaEBsWLO+A0HDYOQi8ufWDkZ0k9e0eXz/tH3II7uKZ9msv++Ls" crossorigin="anonymous">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="favicon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <script src="{{ url_for('static', filename='main.js') }}"></script>
+    <script src="https://kit.fontawesome.com/055aa16451.js" crossorigin="anonymous"></script>
 </head>
 
 
 
 <body>
-    <div class="container">
-        <h1>About Our Disc Golf Statistics App</h1>
-        <p>
-            Our Disc Golf Statistics App is a web application designed to manage and display disc golf-related data, including player scores, courses, rounds, and scorecards.
-           
-        </p>
-    </div>
 
     <nav role="navigation">
         <div id="menuToggle">
-            
+
             <input type="checkbox" />
-    
+
             <span></span>
             <span></span>
             <span></span>
-    
+
             <ul id="menu">
-    
+
                 <a href="guu">
                     <li>Home</li>
                 </a>
                 <a href="/index">
-                    <li>Statistics</li>
+                    <li><i class="fa-solid fa-chart-line"></i>Statistics</li>
                 </a>
                 <a href="/about">
-                    <li>About</li>
+                    <li><i class="fa-solid fa-person-circle-question"></i>About</li>
                 </a>
-                
+
                 <a class="pure-button pure-button-active" href="/">
                     <i class="fa-solid fa-right-from-bracket" style="color: #000000;"></i>
                 </a>
-    
-    
+
+
             </ul>
-    
+
         </div>
     </nav>
+
+
+    <div class="container">
+        <h1>About Our Disc Golf Statistics App</h1>
+        <p>
+            Our Disc Golf Statistics App is a web application designed to manage and display disc golf-related data,
+            including player scores, courses, rounds, and scorecards.
+
+        </p>
+    </div>
+
+
 </body>
+
 </html>
