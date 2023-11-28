@@ -6,6 +6,7 @@ body {
 
 .negative {
     background-color: lightgreen;
+
 }
 
 .birdie {
@@ -83,7 +84,7 @@ table {
 th,
 td {
     padding: 8px;
-    text-align: left;
+    text-align: center;
     border-bottom: 1px solid #ddd;
     max-height: 50px;
     /* Set the max height to 50px */
