@@ -390,3 +390,9 @@ p {
 .fa-right-from-bracket {
     color: darkblue;
 }
+
+.fa-cubes {
+    padding-left: 5px;
+    padding-right: 5px;
+    color: darkblue;
+}
