@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='Login.css') }}">
+    <title>Logged Out</title>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="d-flex flex-column align-items-center justify-content-center">
+                    <h1>You've been logged out</h1>
+                    <!-- Flash messages section -->
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                    {% endwith %}
+                    <!-- End of flash messages section -->
+                    <p>Want to log in again? <a href="/">Log in</a></p>
+                    <p>Don't have an account? <a href="/register">Sign up</a></p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <img src="{{ url_for('static', filename='disc-golf.jpg') }}" alt="disc-golf" class="img-fluid">
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

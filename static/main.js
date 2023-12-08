@@ -31,7 +31,7 @@ window.onload = function () {
 
     function fetchData(endpoint, selectElement, defaultOptionText) {
         console.log("Fetching URL:", endpoint);
-
+    
         elements.LOADING_INDICATOR.style.display = "block";
         return fetch(endpoint)
             .then((response) => {
@@ -44,6 +44,8 @@ window.onload = function () {
                 console.log(data);
                 if (data?.length > 0) {
                     populateSelect(selectElement, data, defaultOptionText);
+                    // Store the selected player name after updating the dropdown
+                    selectedPlayerName = elements.PLAYER_NAME.options[elements.PLAYER_NAME.selectedIndex]?.text;
                 }
             })
             .catch((error) => {
@@ -53,6 +55,7 @@ window.onload = function () {
                 elements.LOADING_INDICATOR.style.display = "none";
             });
     }
+    
 
     function validateElements(elements) {
         for (const key in elements) {
@@ -121,7 +124,7 @@ window.onload = function () {
 
         let selectedCourseName = elements.COURSE_NAME.options[elements.COURSE_NAME.selectedIndex].text;
         let selectedLayoutName = elements.LAYOUT_NAME.options[elements.LAYOUT_NAME.selectedIndex].text;
-        let selectedPlayerName = elements.PLAYER_NAME.options[elements.PLAYER_NAME.selectedIndex].text;
+        let selectedPlayerName = elements.PLAYER_NAME.options[elements.PLAYER_NAME.selectedIndex]?.text;
         let numResults = elements.NUM_RESULTS.value;
 
             // Check if a valid course, layout, and player are selected

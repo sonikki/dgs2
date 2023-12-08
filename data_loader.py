@@ -14,7 +14,7 @@ def load_data(filename):
             db.session.add(meta_data)
 
         df = pd.read_csv(filename)
-        print(df['Kaikki'].unique())
+        print('data loaded')
 
         last_processed_timestamp = get_last_processed_timestamp() or datetime.min
 
@@ -22,10 +22,18 @@ def load_data(filename):
         df['Päivämäärä'] = pd.to_datetime(df['Päivämäärä'], format='%Y-%m-%d %H%M')
         df = df[df['Päivämäärä'].apply(lambda x: x.to_pydatetime() >= last_processed_timestamp)]
         total_rows = len(df)
+
         # Process the filtered rows
-        for _, row in df.iterrows():
+        for i, (_, row) in enumerate(df.iterrows(), 1):
             process_row(row)
-            print(f'\rProcessed {_}/{total_rows} rows ({_/total_rows*100:.2f}%)', end='')
+            print(f'\rProcessed {i}/{total_rows} rows ({i/total_rows*100:.2f}%)', end='', flush=True)
+        
+        print()  # Add a newline to ensure proper termination
+    except Exception as e:
+        print(f"Error loading data: {e}")
+
+
+
 
         # Update the last processed timestamp
         if not df.empty:

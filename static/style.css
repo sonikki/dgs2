@@ -1,3 +1,20 @@
+/* CSS for larger screens */
+@media (min-width: 768px) {
+    .col-md-8 {
+      width: 66.66666667%;
+    }
+    .col-lg-9 {
+      width: 75%;
+    }
+  }
+  
+  /* CSS for smaller screens */
+  @media (max-width: 767px) {
+    .col-md-8, .col-lg-9 {
+      width: 100%;
+    }
+  }
+
 /* Set the font family and size for the entire page */
 body {
     font-family: Arial, sans-serif;
@@ -371,6 +388,11 @@ h1 {
     padding-left: 450px;
 }
 
+h2 {
+    padding-top: 5px;
+    padding-left: 450px;
+}
+
 .about-otsikko {
     padding-top: 10px;
     padding-left: 260px;
@@ -380,7 +402,10 @@ p {
 
     padding-left: 260px;
 }
-
+form {
+    padding-left: 260px;
+    padding-bottom: 50px;
+}
 .fa-chart-line {
     padding-left: 5px;
     padding-right: 5px;

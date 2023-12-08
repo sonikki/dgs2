@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy.ext.declarative import declarative_base
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
+from flask_login import UserMixin
 
 db = SQLAlchemy()
 
@@ -132,7 +133,7 @@ class HoleScore(BaseModel):
     hole_number = db.Column(db.Integer, nullable=False)
     strokes = db.Column(db.Integer, nullable=False)
 
-class User(db.Model):
+class User(db.Model, UserMixin):
     __bind_key__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
@@ -144,3 +145,6 @@ class User(db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
+    def is_active(self):
+        return True

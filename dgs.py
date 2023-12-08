@@ -1,20 +1,14 @@
 #%%
-from flask import Flask, flash, abort, request, redirect, jsonify, render_template, abort
-from models import db, MetaData, Player, Course, Layout, Round, Scorecard, HoleScore
+from flask import Flask, flash, abort, request, redirect, jsonify, render_template, abort, url_for, redirect, session
+from models import db, MetaData, Player, Course, Layout, Round, Scorecard, HoleScore, User
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from datetime import datetime
 from sqlalchemy.orm.exc import NoResultFound
-import pandas as pd
 from sqlalchemy import func
-from flask import jsonify
 from data_loader import load_data
-from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash
 from werkzeug.security import check_password_hash
-from models import db, User
-from flask import redirect, url_for
-from flask import session
 from datetime import timedelta
 import json
 
@@ -36,6 +30,72 @@ def create_app():
 app = create_app()
 migrate = Migrate(app, db)
 
+@app.route("/", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+
+        if not username or not password:
+            return render_template("login.html", error_message="Username and password are required")
+
+        try:
+            user = User.query.filter((User.username == username) | (User.email == username)).first()
+        except Exception as e:
+            app.logger.error(f"Database error: {e}")
+            return render_template("login.html", error_message="An error occurred. Please try again later.")
+
+        if user and user.check_password(password):
+            session['username'] = username
+            return redirect(url_for('dashboard'))
+        else:
+            return render_template("login.html", error_message="Invalid login credentials")
+    else:
+        # This is the GET request case. You need to return a response here too.
+        return render_template("login.html")
+        
+@app.route("/index", methods=["GET", "POST"])
+def index():
+    if request.method == "POST":
+        player_name = request.form.get("player_name")
+        course_name = request.form.get("course_name")
+        layout_name = request.form.get("layout_name")
+        scorecard_id = request.form.get("scorecard_id")
+
+        player = Player.query.filter_by(name=player_name).first()
+        course = Course.query.filter_by(name=course_name).first()
+        layout = Layout.query.filter_by(name=layout_name).first()
+        scorecard = db.session.get(Scorecard, scorecard_id)
+
+        if not all([player, course, layout, scorecard]):
+            flash("Error: Not all form fields were filled out correctly.")
+            return redirect(request.url)
+
+        # Handle form submission (e.g., save data to database)
+
+    players = [player.name for player in Player.query.all()]
+    courses = [course.name for course in Course.query.all()]
+    layouts = [layout.name for layout in Layout.query.all()]
+    scorecards = [scorecard.id for scorecard in Scorecard.query.all()]
+
+    return render_template(
+        "index.html",
+        players=players,
+        courses=courses,
+        layouts=layouts,
+        scorecards=scorecards,
+    )
+
+
+@app.route("/dashboard")
+def dashboard():
+    if 'username' in session:
+        username = session['username']
+        return render_template("dashboard.html", username=username)
+    else:
+        # Redirect to the login page if the user is not logged in
+        return redirect(url_for("login"))    
+    
 
 @app.route('/hole_scores/<int:scorecard_id>')
 def hole_scores(scorecard_id):
@@ -78,7 +138,6 @@ def hole_scores(scorecard_id):
 
     return jsonify(response_data)
 
-    
 
 @app.route('/par/<course_name>/<layout_name>')
 def get_par(course_name, layout_name):
@@ -211,37 +270,7 @@ def scorecard_data(player_name, course_name, layout_name, limit):
         ]
     )
 
-@app.route("/index", methods=["GET", "POST"])
-def index():
-    if request.method == "POST":
-        player_name = request.form.get("player_name")
-        course_name = request.form.get("course_name")
-        layout_name = request.form.get("layout_name")
-        scorecard_id = request.form.get("scorecard_id")
 
-        player = Player.query.filter_by(name=player_name).first()
-        course = Course.query.filter_by(name=course_name).first()
-        layout = Layout.query.filter_by(name=layout_name).first()
-        scorecard = db.session.get(Scorecard, scorecard_id)
-
-        if not all([player, course, layout, scorecard]):
-            flash("Error: Not all form fields were filled out correctly.")
-            return redirect(request.url)
-
-        # Handle form submission (e.g., save data to database)
-
-    players = [player.name for player in Player.query.all()]
-    courses = [course.name for course in Course.query.all()]
-    layouts = [layout.name for layout in Layout.query.all()]
-    scorecards = [scorecard.id for scorecard in Scorecard.query.all()]
-
-    return render_template(
-        "index.html",
-        players=players,
-        courses=courses,
-        layouts=layouts,
-        scorecards=scorecards,
-    )
 # create the route for players_for_course_and_layout:
 @app.route("/players_for_course_and_layout/<course_name>/<layout_name>")
 def players_for_course_and_layout(course_name, layout_name):
@@ -278,23 +307,7 @@ def courses_for_all_players():
     return jsonify([course[0] for course in courses])
 
 
-@app.route("/", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
 
-        # Query the user by username or email
-        user = User.query.filter((User.username == username) | (User.email == username)).first()
-
-        if user and user.check_password(password):
-            session['username'] = username  # Set the username in the session
-            return render_template("dashboard.html", username=username)
-        else:
-            # Invalid credentials, show an error message or redirect to the login page again
-            return render_template("login.html", error_message="Invalid login credentials")
-
-    return render_template("login.html")
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -334,14 +347,7 @@ def about():
 
 from flask import session
 
-@app.route("/dashboard")
-def dashboard():
-    if 'username' in session:
-        username = session['username']
-        return render_template("dashboard.html", username=username)
-    else:
-        # Redirect to the login page if the user is not logged in
-        return redirect(url_for("login"))
+
 
 
 if __name__ == "__main__":
@@ -350,4 +356,5 @@ if __name__ == "__main__":
         db.create_all()
         filename = "UDisc Scorecards.csv"
         load_data(filename)  # Load data when the application starts
+
     app.run(debug=True)
