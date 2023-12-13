@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DGS</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/pure-min.css"
+        integrity="sha384-X38yfunGUhNzHpBaEBsWLO+A0HDYOQi8ufWDkZ0k9e0eXz/tH3II7uKZ9msv++Ls" crossorigin="anonymous">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="favicon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <script src="https://kit.fontawesome.com/055aa16451.js" crossorigin="anonymous"></script>
+</head>
+
+<body>
+    <nav role="navigation">
+        <div id="menuToggle">
+
+            <input type="checkbox" />
+
+            <span></span>
+            <span></span>
+            <span></span>
+
+            <ul id="menu">
+
+                <a href="/dashboard">
+                    <li><i class="fa-solid fa-cubes"></i>Dashboard</li>
+                </a>
+                <a href="/index">
+                    <li><i class="fa-solid fa-chart-line"></i>Statistics</li>
+                </a>
+                <a href="/teams">
+                    <li><i class="fa-solid fa-people-group"></i>Teams</li>
+                </a>
+
+                <a class="pure-button pure-button-active" href="/logout">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </a>
+
+
+            </ul>
+
+        </div>
+    </nav>
+
+    <h1>Teams</h1>
+
+    <h2>Create a New Team</h2>
+    <form action="{{ url_for('create_team') }}" method="post">
+        <label for="team_name">Team Name:</label>
+        <input type="text" id="team_name" name="team_name" required>
+        <input type="submit" value="Create Team">
+    </form>
+
+    <h2>Join a Team</h2>
+    {% for team in teams %}
+        {% set is_member = team.members|selectattr("user_id", "equalto", current_user_id)|list|length > 0 %}
+        {% if not is_member %}
+            <form action="{{ url_for('join_team', team_id=team.id) }}" method="post">
+                <input type="hidden" name="team_id" value="{{ team.id }}">
+                <input type="submit" value="Join {{ team.name }}">
+            </form>
+        {% endif %}
+    {% endfor %}
+
+    <h2>All Teams</h2>
+    {% for team in teams %}
+        <div class="team-box">
+            <a href="{{ url_for('view_team', team_id=team.id) }}">
+                {% if team.logo %}
+                    <img src="{{ url_for('static', filename=team.logo) }}" alt="{{ team.name }} logo">
+                {% else %}
+                    <img src="{{ url_for('static', filename='default_logo.png') }}" alt="Default logo">
+                {% endif %}
+            </a>
+            <div class="team-name">{{ team.name }}</div>
+            {% if session['username'] == team.creator_id %}
+                <form action="{{ url_for('delete_team', team_id=team.id) }}" method="post">
+                    <input type="submit" value="Delete {{ team.name }}">
+                </form>
+            {% endif %}
+            <form action="{{ url_for('leave_team', team_id=team.id) }}" method="post">
+                <input type="submit" value="Leave {{ team.name }}">
+            </form>
+        </div>
+    {% endfor %}
+    {% if messages %}
+        <div id="message-box" style="padding: 10px; margin-bottom: 20px;width: fit-content;">
+            {% set message = messages[0] %}
+            <p {% if 'error' in message %}style="color: red;"{% endif %}>{{ message }}</p>
+        </div>
+    {% endif %}
+</body>
+
+</html>

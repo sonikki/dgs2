@@ -1,6 +1,6 @@
 #%%
-from flask import Flask, flash, abort, request, redirect, jsonify, render_template, abort, url_for, redirect, session
-from models import db, MetaData, Player, Course, Layout, Round, Scorecard, HoleScore, User
+from flask import Flask, flash, abort, request, redirect, jsonify, render_template, abort, url_for, redirect, session, get_flashed_messages
+from models import db, MetaData, Player, Course, Layout, Round, Scorecard, HoleScore, User, Team, TeamMember
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from datetime import datetime
@@ -86,16 +86,202 @@ def index():
         scorecards=scorecards,
     )
 
-
 @app.route("/dashboard")
 def dashboard():
     if 'username' in session:
+        messages = get_flashed_messages()
         username = session['username']
-        return render_template("dashboard.html", username=username)
+        return render_template("dashboard.html", username=username, messages=messages)
     else:
         # Redirect to the login page if the user is not logged in
         return redirect(url_for("login"))    
     
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        # Process registration form data
+        username = request.form["username"]
+        password = request.form["password"]
+        email = request.form["email"]
+        confirm_password = request.form["confirm-password"]
+        
+        # Check if username already exists
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user:
+            flash("Username already exists. Please choose a different one.")
+            return redirect("/register")
+        
+        # Check if email already exists
+        existing_email = User.query.filter_by(email=email).first()
+        if existing_email:
+            flash("E-mail address already exists. Please choose a different one.")
+            return redirect("/register")
+        
+         # Check if passwords match
+        if password != confirm_password:
+            flash("Passwords do not match. Please try again.")
+            return redirect("/register")
+        
+         # Create a new user and add it to the database
+        new_user = User(username=username, email=email)
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
+
+        flash("Registration successful! Please log in.")
+
+        return redirect(url_for("login"))
+    return render_template("register.html")
+
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+@app.route("/teams", methods=["GET"])
+def teams():
+    # Fetch all teams
+    teams = Team.query.all()
+
+    # Fetch the current user
+    current_user = User.query.filter_by(username=session['username']).first()
+
+    # Render the teams page with the teams and current user's ID
+    return render_template("teams.html", teams=teams, current_user_id=current_user.id)
+
+
+@app.route("/teams/create", methods=["POST"])
+def create_team():
+    # Check if user is logged in
+    if 'username' not in session:
+        flash ("error : You must be logged in to create a team")
+        return redirect(url_for('teams'))
+
+    # Get team name from the request
+    team_name = request.form.get("team_name")
+    if not team_name:
+        return flash("error: Team name is required"), 400
+    
+    # Check if a team with the given name already exists
+    existing_team = Team.query.filter_by(name=team_name).first()
+    if existing_team:
+        flash("error:  A team with this name already exists")
+        return redirect(url_for('teams'))
+    
+    # Create a new team and add it to the database
+    new_team = Team(name=team_name, creator_id=session['username'])
+    db.session.add(new_team)
+    db.session.commit()
+
+    # Get the user who created the team
+    creator = User.query.filter_by(username=session['username']).first()
+
+    # Create a new team member for the creator and add it to the database
+    new_team_member = TeamMember(user_id=creator.id, team_id=new_team.id)
+    db.session.add(new_team_member)
+    db.session.commit()
+
+    # Flash a success message and redirect to the dashboard
+    flash("Team created successfully")
+    return redirect(url_for('teams'))
+
+@app.route("/teams/<int:team_id>", methods=["GET"])
+def view_team(team_id):
+    # Fetch the team with the given ID
+    team = Team.query.get_or_404(team_id)
+
+    # Check if the team exists
+    if team is None:
+        flash("error: Team not found")
+        return redirect(url_for('teams'))
+
+    # Fetch the creator of the team
+    creator = User.query.get(team.creator_id)
+
+    # Fetch the date the team was created
+    team_member = TeamMember.query.filter_by(team_id=team.id).order_by(TeamMember.joined_at).first()
+    date_created = team_member.joined_at if team_member else None
+   
+
+    # Render the team info page with the team's information
+    return render_template("team.html", team=team, creator=creator, date_created=date_created)
+
+@app.route("/join_team/<int:team_id>", methods=["POST"])
+def join_team(team_id):
+    # join the team with the given ID
+    team = Team.query.get_or_404(team_id)
+    if 'username' not in session:
+        flash("error: You must be logged in to join a team")
+        return redirect(url_for('teams'))
+
+    # Add the user to the team
+    user = User.query.get(session['username'])
+    if user is None:
+        flash("error: User not found")
+        return redirect(url_for('teams'))
+
+    # Check if user is already in the team
+    if user in team.members:
+        flash("error: You are already a member of this team")
+        return redirect(url_for('teams'))
+
+    # Add user to team and commit the changes
+    team.members.append(user)
+    db.session.commit()
+
+    flash("Successfully joined the team")
+    return redirect(url_for('teams'))
+    
+@app.route("/teams/<int:team_id>/leave", methods=["POST"])
+def leave_team(team_id):
+    # Fetch the team with the given ID
+    team = Team.query.get_or_404(team_id)
+    if 'username' not in session:
+        flash("error: You must be logged in to leave a team")
+        return redirect(url_for('teams'))
+
+    # Fetch the user
+    user = User.query.get(session['username'])
+    if user is None:
+        flash("error: User not found")
+        return redirect(url_for('teams'))
+
+    # Check if user is in the team
+    if user not in team.members:
+        flash("error: You are not a member of this team")
+        return redirect(url_for('teams'))
+
+    # Remove user from team and commit the changes
+    team.members.remove(user)
+    db.session.commit()
+
+    flash("Successfully left the team")
+    return redirect(url_for('teams'))
+
+@app.route("/teams/<int:team_id>/delete", methods=["POST"])
+def delete_team(team_id):
+    # Fetch the team with the given ID
+    team = Team.query.get_or_404(team_id)
+
+    # Check if the team exists
+    if team is None:
+        flash("error: Team not found")
+        return redirect(url_for('teams'))
+
+    # Check if the current user is the creator of the team
+    if session['username'] != team.creator_id:
+        flash("error: Only the creator of the team can delete it")
+        return redirect(url_for('teams'))
+
+    # Delete all team members associated with the team
+    TeamMember.query.filter_by(team_id=team.id).delete()
+
+    # Delete the team
+    db.session.delete(team)
+    db.session.commit()
+
+    # Flash a success message and redirect to the dashboard
+    flash("Team deleted successfully")
+    return redirect(url_for('teams'))
 
 @app.route('/hole_scores/<int:scorecard_id>')
 def hole_scores(scorecard_id):
@@ -293,59 +479,30 @@ def players_for_course_and_layout(course_name, layout_name):
     return jsonify([player.name for player in players])
 
 
-
-# create the route for courses_for_all_players:
 @app.route("/courses_for_all_players/")
 def courses_for_all_players():
-    courses = (
-        db.session.query(Course.name)
-        .join(Round)
-        .filter(Round.course_id == Course.id)
-        .distinct()
-        .all()
-    )
-    return jsonify([course[0] for course in courses])
+    try:
+        courses = (
+            db.session.query(Course.name)
+            .join(Round)
+            .filter(Round.course_id == Course.id)
+            .distinct()
+            .all()
+        )
+        return jsonify([course[0] for course in courses])
+    except Exception as e:
+        # Log the error and return an error message
+        app.logger.error(f"Database error: {e}")
+        return jsonify({"error": "An error occurred. Please try again later."}), 500
+
+@app.route("/logout")
+def logout():
+    session.pop("logged_in", None)
+    session.pop("user_id", None)
+    session.pop("user_name", None)
+    return redirect(url_for("logged_out"))
 
 
-
-
-
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    if request.method == "POST":
-        # Process registration form data
-        username = request.form["username"]
-        password = request.form["password"]
-        email = request.form["email"]
-        confirm_password = request.form["confirm-password"]
-        
-        # Check if username already exists
-        existing_user = User.query.filter_by(username=username).first()
-        if existing_user:
-            flash("Username already exists. Please choose a different one.")
-            return redirect("/register")
-        
-         # Check if passwords match
-        if password != confirm_password:
-            flash("Passwords do not match. Please try again.")
-            return redirect("/register")
-        
-         # Create a new user and add it to the database
-        new_user = User(username=username, email=email)
-        new_user.set_password(password)
-        db.session.add(new_user)
-        db.session.commit()
-
-        flash("Registration successful! Please log in.")
-
-        return redirect(url_for("login"))
-    return render_template("register.html")
-
-@app.route('/about')
-def about():
-    return render_template('about.html')
-
-from flask import session
 
 
 

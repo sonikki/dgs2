@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 
-</html>
-<html>
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,12 +9,10 @@
         integrity="sha384-X38yfunGUhNzHpBaEBsWLO+A0HDYOQi8ufWDkZ0k9e0eXz/tH3II7uKZ9msv++Ls" crossorigin="anonymous">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="favicon" href="{{ url_for('static', filename='favicon.ico') }}">
-    <script src="{{ url_for('static', filename='main.js') }}"></script>
     <script src="https://kit.fontawesome.com/055aa16451.js" crossorigin="anonymous"></script>
 </head>
 
 <body>
-
     <nav role="navigation">
         <div id="menuToggle">
 
@@ -39,23 +34,29 @@
                     <li><i class="fa-solid fa-people-group"></i>Teams</li>
                 </a>
 
-                <a class="pure-button pure-button-active" href="/">
+                <a class="pure-button pure-button-active" href="/logout">
                     <i class="fa-solid fa-right-from-bracket"></i>
                 </a>
 
 
             </ul>
 
-
-
         </div>
     </nav>
-    <h1>Welcome, {{ username }}!</h1>
-    {% for message in messages %}
-    <p>{{ message }}</p>
-    {% endfor %}    
-    <p class="text">To get started, check the hamburger menu</p>
-    <img src="{{ url_for('static', filename='scenery-background.jpg') }}" alt="About-us" class="background">
+
+    <h1>{{ team.name }}</h1>
+    <p>Created on: {{ team.members[0].joined_at.strftime('%Y-%m-%d') if team.members else 'N/A' }}</p>
+    <p>Created by: {{ team.creator_id }}</p>
+
+    <h2>Members:</h2>
+    <ul>
+        {% for member in team.members %}
+            <li>{{ member.user.username }}</li>
+        {% endfor %}
+    </ul>
+
+    <p><a href="/teams">Back to Teams</a></p>
+
 </body>
 
 </html>

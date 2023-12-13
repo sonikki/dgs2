@@ -148,3 +148,25 @@ class User(db.Model, UserMixin):
     
     def is_active(self):
         return True
+    
+class Team(BaseModel):
+    __bind_key__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    # Relationship to User
+    creator = db.relationship('User', foreign_keys=[creator_id])
+
+    # Relationship to TeamMember
+    members = db.relationship('TeamMember', backref='team', lazy=True)
+
+
+class TeamMember(BaseModel):
+    __bind_key__ = 'users'
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    team_id = db.Column(db.Integer, db.ForeignKey('team.id'), primary_key=True)
+    joined_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationship to User
+    user = db.relationship('User', foreign_keys=[user_id])

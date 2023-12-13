@@ -27,7 +27,7 @@ body {
 }
 
 .birdie {
-    background-color: green;
+    background-color: lightgreen;
     color: black
 }
 
@@ -47,7 +47,7 @@ body {
 }
 
 .eagle {
-    background-color: rgb(3, 0, 100);
+    background-color: blue;
     color: black;
 }
 
@@ -449,4 +449,20 @@ form {
 
 .text {
     padding-left: 450px;
+}
+.team-box {
+    width: 200px;
+    height: 200px;
+    margin: 10px;
+    border: 1px solid #ffffff;
+    text-align: center;
+    display: inline-block;
+    vertical-align: top;
+}
+.team-box img {
+    max-width: 100%;
+    max-height: 80%;
+}
+.team-box .team-name {
+    margin: 10px 0;
 }
